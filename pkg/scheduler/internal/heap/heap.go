@@ -22,9 +22,11 @@ package heap
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/scheduler/framework/parallelize"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 )
 
@@ -125,12 +127,24 @@ func (h *data) Peek() interface{} {
 // Heap is a producer/consumer queue that implements a heap data structure.
 // It can be used to implement priority queues and similar data structures.
 type Heap struct {
+	// name is the heap's name
+	name string
 	// data stores objects and has a queue that keeps their ordering according
 	// to the heap invariant.
 	data *data
 	// metricRecorder updates the counter when elements of a heap get added or
 	// removed, and it does nothing if it's nil
 	metricRecorder metrics.MetricRecorder
+
+	// parallelizer holds parallelism for the heap.
+	// We can use the parallelizer to do some specific read-only functions on
+	// each items in the heap.
+	parallelizer parallelize.Parallelizer
+}
+
+// String returns the heap's name
+func (h *Heap) String() string {
+	return h.name
 }
 
 // Add inserts an item, and puts it in the queue. The item is updated if it
@@ -190,6 +204,12 @@ func (h *Heap) Delete(obj interface{}) error {
 	return fmt.Errorf("object not found")
 }
 
+func (h *Heap) Process(f processFunc) {
+	h.parallelizer.Until(context.Background(), len(h.data.queue), func(piece int) {
+		f(piece, h.data.queue[piece], h.data.items[h.data.queue[piece]].obj)
+	})
+}
+
 // Peek returns the head of the heap without removing it.
 func (h *Heap) Peek() interface{} {
 	return h.data.Peek()
@@ -240,12 +260,12 @@ func (h *Heap) Len() int {
 }
 
 // New returns a Heap which can be used to queue up items to process.
-func New(keyFn KeyFunc, lessFn lessFunc) *Heap {
-	return NewWithRecorder(keyFn, lessFn, nil)
+func New(name string, keyFn KeyFunc, lessFn lessFunc, parallelism int32) *Heap {
+	return NewWithRecorder(name, keyFn, lessFn, nil, parallelism)
 }
 
 // NewWithRecorder wraps an optional metricRecorder to compose a Heap object.
-func NewWithRecorder(keyFn KeyFunc, lessFn lessFunc, metricRecorder metrics.MetricRecorder) *Heap {
+func NewWithRecorder(name string, keyFn KeyFunc, lessFn lessFunc, metricRecorder metrics.MetricRecorder, parallelism int32) *Heap {
 	return &Heap{
 		data: &data{
 			items:    map[string]*heapItem{},
@@ -260,3 +280,9 @@ func NewWithRecorder(keyFn KeyFunc, lessFn lessFunc, metricRecorder metrics.Metr
 // lessFunc is a function that receives two items and returns true if the first
 // item should be placed before the second one when the list is sorted.
 type lessFunc = func(item1, item2 interface{}) bool
+
+// processFunc is a read-only function that receives three parameters.
+// 1. index means the index of an item in the heap internal queue.
+// 2. key means the key of an item in the heap internal map.
+// 3. obj means the real object stored by an item in the heap.
+type processFunc = func(index int, key string, obj interface{})

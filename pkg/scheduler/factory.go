@@ -168,6 +168,7 @@ func (c *Configurator) create() (*Scheduler, error) {
 		internalqueue.WithPodMaxBackoffDuration(time.Duration(c.podMaxBackoffSeconds)*time.Second),
 		internalqueue.WithPodNominator(nominator),
 		internalqueue.WithClusterEventMap(c.clusterEventMap),
+		internalqueue.WithParallelism(c.parallellism),
 	)
 
 	// Setup cache debugger.

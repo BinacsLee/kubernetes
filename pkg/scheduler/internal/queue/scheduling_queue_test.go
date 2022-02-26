@@ -122,9 +122,12 @@ var highPriorityPodInfo, highPriNominatedPodInfo, medPriorityPodInfo, unschedula
 	})
 
 func getUnschedulablePod(p *PriorityQueue, pod *v1.Pod) *v1.Pod {
-	pInfo := p.unschedulableQ.get(pod)
-	if pInfo != nil {
-		return pInfo.Pod
+	obj, exist, _ := p.unschedulableQ.Get(newQueuedPodInfoForLookup(pod))
+	if exist {
+		pInfo := obj.(*framework.QueuedPodInfo)
+		if pInfo != nil {
+			return pInfo.Pod
+		}
 	}
 	return nil
 }
