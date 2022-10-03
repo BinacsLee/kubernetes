@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 // preScoreStateKey is the key in CycleState to InterPodAffinity pre-computed data for Scoring.
@@ -192,7 +193,13 @@ func (pl *InterPodAffinity) PreScore(
 		podsToProcess := nodeInfo.PodsWithAffinity
 		if hasPreferredAffinityConstraints || hasPreferredAntiAffinityConstraints {
 			// We need to process all the pods.
-			podsToProcess = nodeInfo.Pods
+			// podsToProcess = nodeInfo.Pods
+			pods := make([]*framework.PodInfo, 0)
+			nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+				pods = append(pods, so.(*framework.PodInfo))
+				return true
+			})
+			podsToProcess = pods
 		}
 
 		topoScore := make(scoreMap)

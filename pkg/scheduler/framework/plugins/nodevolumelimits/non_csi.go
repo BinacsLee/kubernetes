@@ -38,6 +38,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
@@ -232,13 +233,23 @@ func (pl *nonCSILimits) Filter(ctx context.Context, _ *framework.CycleState, pod
 		return nil
 	}
 
-	// count unique volumes
 	existingVolumes := make(sets.String)
-	for _, existingPod := range nodeInfo.Pods {
-		if err := pl.filterVolumes(existingPod.Pod, false /* existing pod */, existingVolumes); err != nil {
-			return framework.AsStatus(err)
+	// count unique volumes
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		existingPod := so.(*framework.PodInfo)
+		if err = pl.filterVolumes(existingPod.Pod, false /* existing pod */, existingVolumes); err != nil {
+			return false
 		}
+		return true
+	})
+	if err != nil {
+		return framework.AsStatus(err)
 	}
+	// for _, existingPod := range nodeInfo.Pods {
+	// 	if err := pl.filterVolumes(existingPod.Pod, false /* existing pod */, existingVolumes); err != nil {
+	// 		return framework.AsStatus(err)
+	// 	}
+	// }
 	numExistingVolumes := len(existingVolumes)
 
 	// filter out already-mounted volumes

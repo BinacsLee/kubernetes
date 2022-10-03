@@ -262,7 +262,8 @@ func (pl *noPodsFilterPlugin) Name() string {
 
 // Filter invoked at the filter extension point.
 func (pl *noPodsFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
-	if len(nodeInfo.Pods) == 0 {
+	// if len(nodeInfo.Pods) == 0 {
+	if nodeInfo.Pods.Len() == 0 {
 		return nil
 	}
 	return framework.NewStatus(framework.Unschedulable, st.ErrReasonFake)

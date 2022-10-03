@@ -64,28 +64,28 @@ func getVolumeLimitKey(filterType string) v1.ResourceName {
 }
 
 func TestCSILimits(t *testing.T) {
-	runningPod := st.MakePod().PVC("csi-ebs.csi.aws.com-3").Obj()
-	pendingVolumePod := st.MakePod().PVC("csi-4").Obj()
+	runningPod := st.MakePod().UID("runningPod").PVC("csi-ebs.csi.aws.com-3").Obj()
+	pendingVolumePod := st.MakePod().UID("pendingVolumePod").PVC("csi-4").Obj()
 
 	// Different pod than pendingVolumePod, but using the same unbound PVC
-	unboundPVCPod2 := st.MakePod().PVC("csi-4").Obj()
+	unboundPVCPod2 := st.MakePod().UID("unboundPVCPod2").PVC("csi-4").Obj()
 
-	missingPVPod := st.MakePod().PVC("csi-6").Obj()
-	noSCPVCPod := st.MakePod().PVC("csi-5").Obj()
+	missingPVPod := st.MakePod().UID("missingPVPod").PVC("csi-6").Obj()
+	noSCPVCPod := st.MakePod().UID("noSCPVCPod").PVC("csi-5").Obj()
 
-	gceTwoVolPod := st.MakePod().PVC("csi-pd.csi.storage.gke.io-1").PVC("csi-pd.csi.storage.gke.io-2").Obj()
+	gceTwoVolPod := st.MakePod().UID("gceTwoVolPod").PVC("csi-pd.csi.storage.gke.io-1").PVC("csi-pd.csi.storage.gke.io-2").Obj()
 
 	// In-tree volumes
-	inTreeOneVolPod := st.MakePod().PVC("csi-kubernetes.io/aws-ebs-0").Obj()
-	inTreeTwoVolPod := st.MakePod().PVC("csi-kubernetes.io/aws-ebs-1").PVC("csi-kubernetes.io/aws-ebs-2").Obj()
+	inTreeOneVolPod := st.MakePod().UID("inTreeOneVolPod").PVC("csi-kubernetes.io/aws-ebs-0").Obj()
+	inTreeTwoVolPod := st.MakePod().UID("inTreeTwoVolPod").PVC("csi-kubernetes.io/aws-ebs-1").PVC("csi-kubernetes.io/aws-ebs-2").Obj()
 
 	// pods with matching csi driver names
-	csiEBSOneVolPod := st.MakePod().PVC("csi-ebs.csi.aws.com-0").Obj()
-	csiEBSTwoVolPod := st.MakePod().PVC("csi-ebs.csi.aws.com-1").PVC("csi-ebs.csi.aws.com-2").Obj()
+	csiEBSOneVolPod := st.MakePod().UID("csiEBSOneVolPod").PVC("csi-ebs.csi.aws.com-0").Obj()
+	csiEBSTwoVolPod := st.MakePod().UID("csiEBSTwoVolPod").PVC("csi-ebs.csi.aws.com-1").PVC("csi-ebs.csi.aws.com-2").Obj()
 
-	inTreeNonMigratableOneVolPod := st.MakePod().PVC("csi-kubernetes.io/hostpath-0").Obj()
+	inTreeNonMigratableOneVolPod := st.MakePod().UID("inTreeNonMigratableOneVolPod").PVC("csi-kubernetes.io/hostpath-0").Obj()
 
-	ephemeralVolumePod := st.MakePod().Name("abc").Namespace("test").UID("12345").Volume(
+	ephemeralVolumePod := st.MakePod().Name("abc").UID("ephemeralVolumePod").Namespace("test").UID("12345").Volume(
 		v1.Volume{
 			Name: "xyz",
 			VolumeSource: v1.VolumeSource{

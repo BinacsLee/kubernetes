@@ -27,6 +27,7 @@ import (
 	extenderv1 "k8s.io/kube-scheduler/extender/v1"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	"k8s.io/kubernetes/pkg/scheduler/util"
 )
 
@@ -250,12 +251,21 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(pod *v1.Pod, node *v1.Node)
 	// As the first step, remove all the lower priority pods from the node and
 	// check if the given pod can be scheduled.
 	podPriority := corev1helpers.PodPriority(pod)
-	for _, p := range nodeInfoCopy.Pods {
-		if corev1helpers.PodPriority(p.Pod) < podPriority {
-			potentialVictims = append(potentialVictims, p.Pod)
-			removePod(p.Pod)
+	nodeInfoCopy.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		pi := so.(*framework.PodInfo)
+		if corev1helpers.PodPriority(pi.Pod) >= podPriority {
+			return false
 		}
-	}
+		potentialVictims = append(potentialVictims, pi.Pod)
+		removePod(pi.Pod)
+		return true
+	})
+	// for _, p := range nodeInfoCopy.Pods {
+	// 	if corev1helpers.PodPriority(p.Pod) < podPriority {
+	// 		potentialVictims = append(potentialVictims, p.Pod)
+	// 		removePod(p.Pod)
+	// 	}
+	// }
 	sort.Slice(potentialVictims, func(i, j int) bool { return util.MoreImportantPod(potentialVictims[i], potentialVictims[j]) })
 
 	// If the new pod does not fit after removing all the lower priority pods,

@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 // SelectorSpread is a plugin that calculates selector spread priority.
@@ -217,11 +218,13 @@ func New(_ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 
 // countMatchingPods counts pods based on namespace and matching all selectors
 func countMatchingPods(namespace string, selector labels.Selector, nodeInfo *framework.NodeInfo) int {
-	if len(nodeInfo.Pods) == 0 || selector.Empty() {
+	// if len(nodeInfo.Pods) == 0 || selector.Empty() {
+	if nodeInfo.Pods.Len() == 0 || selector.Empty() {
 		return 0
 	}
 	count := 0
-	for _, p := range nodeInfo.Pods {
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		p := so.(*framework.PodInfo)
 		// Ignore pods being deleted for spreading purposes
 		// Similar to how it is done for SelectorSpreadPriority
 		if namespace == p.Pod.Namespace && p.Pod.DeletionTimestamp == nil {
@@ -229,6 +232,18 @@ func countMatchingPods(namespace string, selector labels.Selector, nodeInfo *fra
 				count++
 			}
 		}
-	}
+		return true
+	})
+	/*
+		for _, p := range nodeInfo.Pods {
+			// Ignore pods being deleted for spreading purposes
+			// Similar to how it is done for SelectorSpreadPriority
+			if namespace == p.Pod.Namespace && p.Pod.DeletionTimestamp == nil {
+				if selector.Matches(labels.Set(p.Pod.Labels)) {
+					count++
+				}
+			}
+		}
+	*/
 	return count
 }

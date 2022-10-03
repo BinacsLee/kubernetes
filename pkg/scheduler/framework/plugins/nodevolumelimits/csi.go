@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
@@ -116,10 +117,20 @@ func (pl *CSILimits) Filter(ctx context.Context, _ *framework.CycleState, pod *v
 	}
 
 	attachedVolumes := make(map[string]string)
-	for _, existingPod := range nodeInfo.Pods {
-		if err := pl.filterAttachableVolumes(existingPod.Pod, csiNode, false /* existing pod */, attachedVolumes); err != nil {
-			return framework.AsStatus(err)
+	// for _, existingPod := range nodeInfo.Pods {
+	// 	if err := pl.filterAttachableVolumes(existingPod.Pod, csiNode, false /* existing pod */, attachedVolumes); err != nil {
+	// 		return framework.AsStatus(err)
+	// 	}
+	// }
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		existingPod := so.(*framework.PodInfo)
+		if err = pl.filterAttachableVolumes(existingPod.Pod, csiNode, false /* existing pod */, attachedVolumes); err != nil {
+			return false
 		}
+		return true
+	})
+	if err != nil {
+		return framework.AsStatus(err)
 	}
 
 	attachedVolumeCount := map[string]int{}

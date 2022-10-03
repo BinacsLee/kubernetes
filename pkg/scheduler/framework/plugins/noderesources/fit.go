@@ -254,13 +254,15 @@ func fitsRequest(podRequest *preFilterState, nodeInfo *framework.NodeInfo, ignor
 	insufficientResources := make([]InsufficientResource, 0, 4)
 
 	allowedPodNumber := nodeInfo.Allocatable.AllowedPodNumber
-	if len(nodeInfo.Pods)+1 > allowedPodNumber {
+	// if len(nodeInfo.Pods)+1 > allowedPodNumber {
+	if nodeInfo.Pods.Len()+1 > allowedPodNumber {
 		insufficientResources = append(insufficientResources, InsufficientResource{
 			ResourceName: v1.ResourcePods,
 			Reason:       "Too many pods",
 			Requested:    1,
-			Used:         int64(len(nodeInfo.Pods)),
-			Capacity:     int64(allowedPodNumber),
+			// Used:         int64(len(nodeInfo.Pods)),
+			Used:     int64(nodeInfo.Pods.Len()),
+			Capacity: int64(allowedPodNumber),
 		})
 	}
 

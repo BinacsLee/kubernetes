@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
@@ -82,31 +83,31 @@ func TestSelectorSpreadScore(t *testing.T) {
 		name         string
 	}{
 		{
-			pod:          new(v1.Pod),
+			pod:          st.MakePod().UID("pod").Obj(),
 			nodes:        []string{"node1", "node2"},
 			expectedList: []framework.NodeScore{{Name: "node1", Score: framework.MaxNodeScore}, {Name: "node2", Score: framework.MaxNodeScore}},
 			name:         "nothing scheduled",
 		},
 		{
-			pod:          st.MakePod().Labels(labels1).Obj(),
-			pods:         []*v1.Pod{st.MakePod().Node("node1").Obj()},
+			pod:          st.MakePod().UID("pod").Labels(labels1).Obj(),
+			pods:         []*v1.Pod{st.MakePod().UID("p1").Node("node1").Obj()},
 			nodes:        []string{"node1", "node2"},
 			expectedList: []framework.NodeScore{{Name: "node1", Score: framework.MaxNodeScore}, {Name: "node2", Score: framework.MaxNodeScore}},
 			name:         "no services",
 		},
 		{
-			pod:          st.MakePod().Labels(labels1).Obj(),
-			pods:         []*v1.Pod{st.MakePod().Labels(labels2).Node("node1").Obj()},
+			pod:          st.MakePod().UID("pod").Labels(labels1).Obj(),
+			pods:         []*v1.Pod{st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj()},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: map[string]string{"key": "value"}}}},
 			expectedList: []framework.NodeScore{{Name: "node1", Score: framework.MaxNodeScore}, {Name: "node2", Score: framework.MaxNodeScore}},
 			name:         "different services",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
@@ -114,13 +115,13 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "two pods, one service pod",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Namespace(metav1.NamespaceDefault).Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Namespace("ns1").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
-				st.MakePod().Labels(labels2).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node1").Namespace(metav1.NamespaceDefault).Obj(),
+				st.MakePod().UID("p3").Labels(labels1).Node("node1").Namespace("ns1").Obj(),
+				st.MakePod().UID("p4").Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p5").Labels(labels2).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
@@ -128,12 +129,12 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "five pods, one service pod in no namespace",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Namespace(metav1.NamespaceDefault).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Namespace(metav1.NamespaceDefault).Obj(),
 			pods: []*v1.Pod{
-				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1}},
-				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1, Namespace: "ns1"}},
-				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1, Namespace: metav1.NamespaceDefault}},
-				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels2}},
+				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1, UID: "p1"}},
+				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1, UID: "p2", Namespace: "ns1"}},
+				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels1, UID: "p3", Namespace: metav1.NamespaceDefault}},
+				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Labels: labels2, UID: "p4"}},
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
@@ -141,13 +142,13 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "four pods, one service pod in default namespace",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Namespace("ns1").Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Namespace("ns1").Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Namespace(metav1.NamespaceDefault).Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Namespace("ns2").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Namespace("ns1").Obj(),
-				st.MakePod().Labels(labels2).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node1").Namespace(metav1.NamespaceDefault).Obj(),
+				st.MakePod().UID("p3").Labels(labels1).Node("node1").Namespace("ns2").Obj(),
+				st.MakePod().UID("p4").Labels(labels1).Node("node2").Namespace("ns1").Obj(),
+				st.MakePod().UID("p5").Labels(labels2).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{Spec: v1.ServiceSpec{Selector: labels1}, ObjectMeta: metav1.ObjectMeta{Namespace: "ns1"}}},
@@ -155,11 +156,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "five pods, one service pod in specific namespace",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node1").Obj(),
+				st.MakePod().UID("p3").Labels(labels1).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
@@ -167,12 +168,12 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "three pods, two service pods on different nodes",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node1").Obj(),
+				st.MakePod().UID("p3").Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p4").Labels(labels1).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
@@ -180,11 +181,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "four pods, three service pods",
 		},
 		{
-			pod: st.MakePod().Labels(labels1).Obj(),
+			pod: st.MakePod().UID("pod").Labels(labels1).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Labels(labels2).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node1").Obj(),
-				st.MakePod().Labels(labels1).Node("node2").Obj(),
+				st.MakePod().UID("p1").Labels(labels2).Node("node1").Obj(),
+				st.MakePod().UID("p2").Labels(labels1).Node("node1").Obj(),
+				st.MakePod().UID("p3").Labels(labels1).Node("node2").Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			services:     []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: map[string]string{"baz": "blah"}}}},
@@ -192,11 +193,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "service with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
-				st.MakePod().Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p1").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
+				st.MakePod().UID("p2").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p3").Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			rcs: []*v1.ReplicationController{
@@ -210,11 +211,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "service with partial pod label matches with service and replication controller",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
-				st.MakePod().Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p1").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
+				st.MakePod().UID("p2").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p3").Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
 			},
 			nodes:    []string{"node1", "node2"},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: metav1.NamespaceDefault}, Spec: v1.ServiceSpec{Selector: map[string]string{"baz": "blah"}}}},
@@ -227,11 +228,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "service with partial pod label matches with service and replica set",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
-				st.MakePod().Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
-				st.MakePod().Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p1").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels2).Obj(),
+				st.MakePod().UID("p2").Node("node1").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
+				st.MakePod().UID("p3").Node("node2").Namespace(metav1.NamespaceDefault).Labels(labels1).Obj(),
 			},
 			nodes:    []string{"node1", "node2"},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: metav1.NamespaceDefault}, Spec: v1.ServiceSpec{Selector: map[string]string{"baz": "blah"}}}},
@@ -243,11 +244,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "service with partial pod label matches with service and statefulset",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("rc3", rcKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("rc3", rcKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			rcs: []*v1.ReplicationController{{
@@ -259,11 +260,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "disjoined service and replication controller matches no pods",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("rs3", rsKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("rs3", rsKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
 			},
 			nodes:    []string{"node1", "node2"},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: metav1.NamespaceDefault}, Spec: v1.ServiceSpec{Selector: map[string]string{"bar": "foo"}}}},
@@ -274,11 +275,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "disjoined service and replica set matches no pods",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("ss3", ssKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(map[string]string{"foo": "bar", "bar": "foo"}).OwnerReference("ss3", ssKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
 			},
 			nodes:    []string{"node1", "node2"},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: metav1.NamespaceDefault}, Spec: v1.ServiceSpec{Selector: map[string]string{"bar": "foo"}}}},
@@ -288,11 +289,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "disjoined service and stateful set matches no pods",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			rcs:   []*v1.ReplicationController{{ObjectMeta: metav1.ObjectMeta{Name: "rc1", Namespace: metav1.NamespaceDefault}, Spec: v1.ReplicationControllerSpec{Selector: map[string]string{"foo": "bar"}}}},
@@ -301,11 +302,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "Replication controller with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			rss:   []*apps.ReplicaSet{{ObjectMeta: metav1.ObjectMeta{Name: "rs1", Namespace: metav1.NamespaceDefault}, Spec: apps.ReplicaSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}}}},
@@ -314,11 +315,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "Replica set with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			sss:   []*apps.StatefulSet{{ObjectMeta: metav1.ObjectMeta{Name: "ss1", Namespace: metav1.NamespaceDefault}, Spec: apps.StatefulSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}}}},
@@ -327,11 +328,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "StatefulSet with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc3", rcKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rc3", rcKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rc2", rcKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rc1", rcKind).Obj(),
 			},
 			nodes:        []string{"node1", "node2"},
 			rcs:          []*v1.ReplicationController{{ObjectMeta: metav1.ObjectMeta{Name: "rc3", Namespace: metav1.NamespaceDefault}, Spec: v1.ReplicationControllerSpec{Selector: map[string]string{"baz": "blah"}}}},
@@ -339,11 +340,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "Another replication controller with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs3", rsKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("rs3", rsKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("rs2", rsKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("rs1", rsKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			rss:   []*apps.ReplicaSet{{ObjectMeta: metav1.ObjectMeta{Name: "rs3", Namespace: metav1.NamespaceDefault}, Spec: apps.ReplicaSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"baz": "blah"}}}}},
@@ -352,11 +353,11 @@ func TestSelectorSpreadScore(t *testing.T) {
 			name:         "Another replication set with partial pod label matches",
 		},
 		{
-			pod: st.MakePod().Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss3", ssKind).Obj(),
+			pod: st.MakePod().UID("pod").Namespace(metav1.NamespaceDefault).Labels(labels1).OwnerReference("ss3", ssKind).Obj(),
 			pods: []*v1.Pod{
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
-				st.MakePod().Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p1").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels2).OwnerReference("ss2", ssKind).Obj(),
+				st.MakePod().UID("p2").Namespace(metav1.NamespaceDefault).Node("node1").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
+				st.MakePod().UID("p3").Namespace(metav1.NamespaceDefault).Node("node2").Labels(labels1).OwnerReference("ss1", ssKind).Obj(),
 			},
 			nodes: []string{"node1", "node2"},
 			sss:   []*apps.StatefulSet{{ObjectMeta: metav1.ObjectMeta{Name: "ss3", Namespace: metav1.NamespaceDefault}, Spec: apps.StatefulSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"baz": "blah"}}}}},
@@ -370,6 +371,7 @@ func TestSelectorSpreadScore(t *testing.T) {
 					Namespace:       metav1.NamespaceDefault,
 					Labels:          labels1,
 					OwnerReferences: controllerRef("ss1", ssKind),
+					UID:             "pod",
 				},
 				Spec: v1.PodSpec{
 					TopologySpreadConstraints: []v1.TopologySpreadConstraint{
@@ -382,9 +384,9 @@ func TestSelectorSpreadScore(t *testing.T) {
 				},
 			},
 			pods: []*v1.Pod{
-				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels2, OwnerReferences: controllerRef("ss2", ssKind)}},
-				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels1, OwnerReferences: controllerRef("ss1", ssKind)}},
-				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels1, OwnerReferences: controllerRef("ss1", ssKind)}},
+				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels2, OwnerReferences: controllerRef("ss2", ssKind), UID: "p1"}},
+				{Spec: zone1Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels1, OwnerReferences: controllerRef("ss1", ssKind), UID: "p2"}},
+				{Spec: zone2Spec, ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels1, OwnerReferences: controllerRef("ss1", ssKind), UID: "p3"}},
 			},
 			nodes:        []string{"node1", "node2"},
 			sss:          []*apps.StatefulSet{{ObjectMeta: metav1.ObjectMeta{Name: "ss1", Namespace: metav1.NamespaceDefault}, Spec: apps.StatefulSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"baz": "blah"}}}}},
@@ -442,9 +444,9 @@ func TestSelectorSpreadScore(t *testing.T) {
 	}
 }
 
-func buildPod(nodeName string, labels map[string]string, ownerRefs []metav1.OwnerReference) *v1.Pod {
+func buildPod(nodeName string, uid types.UID, labels map[string]string, ownerRefs []metav1.OwnerReference) *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels, OwnerReferences: ownerRefs},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Labels: labels, OwnerReferences: ownerRefs, UID: uid},
 		Spec:       v1.PodSpec{NodeName: nodeName},
 	}
 }
@@ -504,8 +506,8 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "nothing scheduled",
 		},
 		{
-			pod:  buildPod("", labels1, nil),
-			pods: []*v1.Pod{buildPod(nodeMachine1Zone1, nil, nil)},
+			pod:  buildPod("", "pod", labels1, nil),
+			pods: []*v1.Pod{buildPod(nodeMachine1Zone1, "p1", nil, nil)},
 			expectedList: []framework.NodeScore{
 				{Name: nodeMachine1Zone1, Score: framework.MaxNodeScore},
 				{Name: nodeMachine1Zone2, Score: framework.MaxNodeScore},
@@ -517,8 +519,8 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "no services",
 		},
 		{
-			pod:      buildPod("", labels1, nil),
-			pods:     []*v1.Pod{buildPod(nodeMachine1Zone1, labels2, nil)},
+			pod:      buildPod("", "pod", labels1, nil),
+			pods:     []*v1.Pod{buildPod(nodeMachine1Zone1, "p1", labels2, nil)},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: map[string]string{"key": "value"}}}},
 			expectedList: []framework.NodeScore{
 				{Name: nodeMachine1Zone1, Score: framework.MaxNodeScore},
@@ -531,10 +533,10 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "different services",
 		},
 		{
-			pod: buildPod("", labels1, nil),
+			pod: buildPod("", "pod", labels1, nil),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone1, labels2, nil),
-				buildPod(nodeMachine1Zone2, labels2, nil),
+				buildPod(nodeMachine1Zone1, "p1", labels2, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels2, nil),
 			},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
 			expectedList: []framework.NodeScore{
@@ -548,10 +550,10 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "two pods, 0 matching",
 		},
 		{
-			pod: buildPod("", labels1, nil),
+			pod: buildPod("", "pod", labels1, nil),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone1, labels2, nil),
-				buildPod(nodeMachine1Zone2, labels1, nil),
+				buildPod(nodeMachine1Zone1, "p1", labels2, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels1, nil),
 			},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
 			expectedList: []framework.NodeScore{
@@ -565,13 +567,13 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "two pods, 1 matching (in z2)",
 		},
 		{
-			pod: buildPod("", labels1, nil),
+			pod: buildPod("", "pod", labels1, nil),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone1, labels2, nil),
-				buildPod(nodeMachine1Zone2, labels1, nil),
-				buildPod(nodeMachine2Zone2, labels1, nil),
-				buildPod(nodeMachine1Zone3, labels2, nil),
-				buildPod(nodeMachine2Zone3, labels1, nil),
+				buildPod(nodeMachine1Zone1, "p1", labels2, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels1, nil),
+				buildPod(nodeMachine2Zone2, "p3", labels1, nil),
+				buildPod(nodeMachine1Zone3, "p4", labels2, nil),
+				buildPod(nodeMachine2Zone3, "p5", labels1, nil),
 			},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
 			expectedList: []framework.NodeScore{
@@ -585,12 +587,12 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "five pods, 3 matching (z2=2, z3=1)",
 		},
 		{
-			pod: buildPod("", labels1, nil),
+			pod: buildPod("", "pod", labels1, nil),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone1, labels1, nil),
-				buildPod(nodeMachine1Zone2, labels1, nil),
-				buildPod(nodeMachine2Zone2, labels2, nil),
-				buildPod(nodeMachine1Zone3, labels1, nil),
+				buildPod(nodeMachine1Zone1, "p1", labels1, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels1, nil),
+				buildPod(nodeMachine2Zone2, "p3", labels2, nil),
+				buildPod(nodeMachine1Zone3, "p4", labels1, nil),
 			},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
 			expectedList: []framework.NodeScore{
@@ -604,13 +606,13 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "four pods, 3 matching (z1=1, z2=1, z3=1)",
 		},
 		{
-			pod: buildPod("", labels1, nil),
+			pod: buildPod("", "pod", labels1, nil),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone1, labels1, nil),
-				buildPod(nodeMachine1Zone2, labels1, nil),
-				buildPod(nodeMachine2Zone2, labels1, nil),
-				buildPod(nodeMachine2Zone2, labels2, nil),
-				buildPod(nodeMachine1Zone3, labels1, nil),
+				buildPod(nodeMachine1Zone1, "p1", labels1, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels1, nil),
+				buildPod(nodeMachine2Zone2, "p3", labels1, nil),
+				buildPod(nodeMachine2Zone2, "p4", labels2, nil),
+				buildPod(nodeMachine1Zone3, "p5", labels1, nil),
 			},
 			services: []*v1.Service{{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "s1"}, Spec: v1.ServiceSpec{Selector: labels1}}},
 			expectedList: []framework.NodeScore{
@@ -624,11 +626,11 @@ func TestZoneSelectorSpreadPriority(t *testing.T) {
 			name: "five pods, 4 matching (z1=1, z2=2, z3=1)",
 		},
 		{
-			pod: buildPod("", labels1, controllerRef("rc1", rcKind)),
+			pod: buildPod("", "pod", labels1, controllerRef("rc1", rcKind)),
 			pods: []*v1.Pod{
-				buildPod(nodeMachine1Zone3, labels1, nil),
-				buildPod(nodeMachine1Zone2, labels1, nil),
-				buildPod(nodeMachine1Zone3, labels1, nil),
+				buildPod(nodeMachine1Zone3, "p1", labels1, nil),
+				buildPod(nodeMachine1Zone2, "p2", labels1, nil),
+				buildPod(nodeMachine1Zone3, "p3", labels1, nil),
 			},
 			rcs: []*v1.ReplicationController{
 				{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "rc1"}, Spec: v1.ReplicationControllerSpec{Selector: labels1}}},

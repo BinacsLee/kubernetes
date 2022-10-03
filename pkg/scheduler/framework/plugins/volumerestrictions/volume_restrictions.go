@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 // VolumeRestrictions is a plugin that checks volume restrictions.
@@ -169,6 +170,7 @@ func (pl *VolumeRestrictions) PreFilterExtensions() framework.PreFilterExtension
 // - Ceph RBD forbids if any two pods share at least same monitor, and match pool and image, and the image is read-only
 // - ISCSI forbids if any two pods share at least same IQN and ISCSI volume is read-only
 func (pl *VolumeRestrictions) Filter(ctx context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
+	var status *framework.Status
 	for i := range pod.Spec.Volumes {
 		v := &pod.Spec.Volumes[i]
 		// fast path if there is no conflict checking targets.
@@ -176,11 +178,24 @@ func (pl *VolumeRestrictions) Filter(ctx context.Context, _ *framework.CycleStat
 			continue
 		}
 
-		for _, ev := range nodeInfo.Pods {
+		nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+			ev := so.(*framework.PodInfo)
 			if isVolumeConflict(v, ev.Pod) {
-				return framework.NewStatus(framework.Unschedulable, ErrReasonDiskConflict)
+				status = framework.NewStatus(framework.Unschedulable, ErrReasonDiskConflict)
+				return false
 			}
+			return true
+		})
+		if status != nil {
+			return status
 		}
+		/*
+			for _, ev := range nodeInfo.Pods {
+				if isVolumeConflict(v, ev.Pod) {
+					return framework.NewStatus(framework.Unschedulable, ErrReasonDiskConflict)
+				}
+			}
+		*/
 	}
 	return nil
 }

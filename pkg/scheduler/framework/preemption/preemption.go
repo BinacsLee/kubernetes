@@ -316,6 +316,15 @@ func (ev *Evaluator) SelectCandidate(candidates []Candidate) Candidate {
 	victimsMap := ev.CandidatesToVictimsMap(candidates)
 	candidateNode := pickOneNodeForPreemption(victimsMap)
 
+	fmt.Printf("===== victimMap = %v\n", victimsMap)
+	for k, v := range victimsMap {
+		pods := make([]string, 0)
+		for i := range v.Pods {
+			pods = append(pods, v.Pods[i].Name)
+		}
+		fmt.Printf("____  k = %v, n = %+v\n", k, pods)
+	}
+
 	// Same as candidatesToVictimsMap, this logic is not applicable for out-of-tree
 	// preemption plugins that exercise different candidates on the same nominated node.
 	if victims := victimsMap[candidateNode]; victims != nil {
@@ -612,5 +621,9 @@ func (ev *Evaluator) DryRunPreemption(ctx context.Context, pod *v1.Pod, potentia
 		statusesLock.Unlock()
 	}
 	fh.Parallelizer().Until(ctx, len(potentialNodes), checkNode, ev.PluginName)
+	fmt.Printf("_____________________ nodeinfos = %v, num = %v\n", potentialNodes, numCandidates)
+	for k, v := range nodeStatuses {
+		fmt.Printf("_________ k=%v, v=%+v\n", k, v)
+	}
 	return append(nonViolatingCandidates.get(), violatingCandidates.get()...), nodeStatuses, utilerrors.NewAggregate(errs)
 }

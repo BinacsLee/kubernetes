@@ -82,7 +82,7 @@ func TestPreFilterState(t *testing.T) {
 	}{
 		{
 			name: "clean cluster with one spreadConstraint",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(5, "zone", v1.DoNotSchedule, st.MakeLabelSelector().Label("foo", "bar").Obj(), nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -113,7 +113,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "normal case with one spreadConstraint",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -123,11 +123,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -151,7 +151,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "normal case with one spreadConstraint, on a 3-zone cluster",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -163,11 +163,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-p").Label("zone", "zone3").Label("node", "node-p").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -192,7 +192,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "namespace mismatch doesn't count",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -202,11 +202,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Namespace("ns2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Namespace("ns2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -230,7 +230,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "normal case with two spreadConstraints",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -241,13 +241,13 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -284,7 +284,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "soft spreadConstraints should be bypassed",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.ScheduleAnyway, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.ScheduleAnyway, fooSelector, nil, nil, nil, nil).
@@ -296,13 +296,13 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -338,7 +338,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "different labelSelectors - simple version",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -348,8 +348,8 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -385,7 +385,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "different labelSelectors - complex pods",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -395,13 +395,13 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -437,7 +437,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "two spreadConstraints, and with podAffinity",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityNotIn("node", []string{"node-x"}). // exclude node-x
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
@@ -449,13 +449,13 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -491,7 +491,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "default constraints and a service",
-			pod:  st.MakePod().Name("p").Label("foo", "bar").Label("baz", "kar").Obj(),
+			pod:  st.MakePod().Name("p").UID("p").Label("foo", "bar").Label("baz", "kar").Obj(),
 			defaultConstraints: []v1.TopologySpreadConstraint{
 				{MaxSkew: 3, TopologyKey: "node", WhenUnsatisfiable: v1.DoNotSchedule},
 				{MaxSkew: 2, TopologyKey: "node", WhenUnsatisfiable: v1.ScheduleAnyway},
@@ -528,7 +528,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "default constraints and a service that doesn't match",
-			pod:  st.MakePod().Name("p").Label("foo", "bar").Obj(),
+			pod:  st.MakePod().Name("p").UID("p").Label("foo", "bar").Obj(),
 			defaultConstraints: []v1.TopologySpreadConstraint{
 				{MaxSkew: 3, TopologyKey: "node", WhenUnsatisfiable: v1.DoNotSchedule},
 			},
@@ -539,7 +539,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "default constraints and a service, but pod has constraints",
-			pod: st.MakePod().Name("p").Label("foo", "bar").Label("baz", "tar").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "bar").Label("baz", "tar").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, st.MakeLabelSelector().Label("baz", "tar").Obj(), nil, nil, nil, nil).
 				SpreadConstraint(2, "planet", v1.ScheduleAnyway, st.MakeLabelSelector().Label("fot", "rok").Obj(), nil, nil, nil, nil).
 				Obj(),
@@ -568,7 +568,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "default soft constraints and a service",
-			pod:  st.MakePod().Name("p").Label("foo", "bar").Obj(),
+			pod:  st.MakePod().Name("p").UID("p").Label("foo", "bar").Obj(),
 			defaultConstraints: []v1.TopologySpreadConstraint{
 				{MaxSkew: 2, TopologyKey: "node", WhenUnsatisfiable: v1.ScheduleAnyway},
 			},
@@ -579,7 +579,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "TpKeyToDomainsNum is calculated when MinDomains is enabled",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -590,13 +590,13 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Obj(),
 			},
 			enableMinDomains: true,
 			want: &preFilterState{
@@ -638,7 +638,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "feature gate disabled with NodeAffinityPolicy",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -648,10 +648,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -676,7 +676,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeAffinityPolicy honored with labelSelectors",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -686,10 +686,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -714,7 +714,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeAffinityPolicy ignored with labelSelectors",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, &ignorePolicy, nil, nil).
 				Obj(),
@@ -724,10 +724,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -753,7 +753,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeAffinityPolicy honored with nodeAffinity",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityIn("foo", []string{""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -763,10 +763,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-e").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-e").UID("p-e").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -791,7 +791,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeAffinityPolicy ignored with nodeAffinity",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityIn("foo", []string{""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, &ignorePolicy, nil, nil).
 				Obj(),
@@ -801,10 +801,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -830,7 +830,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "feature gate disabled with NodeTaintsPolicy",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -839,10 +839,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Taints(taints).Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -868,7 +868,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeTaintsPolicy ignored",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -877,10 +877,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Taints(taints).Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -906,7 +906,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeTaintsPolicy honored",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, &honorPolicy, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -915,10 +915,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Taints(taints).Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -943,7 +943,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "NodeTaintsPolicy honored with tolerated taints",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				Toleration(v1.TaintNodeUnschedulable).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, &honorPolicy, nil).
 				Obj(),
@@ -953,10 +953,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Taints(taints).Label("bar", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-c").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-d").Node("node-c").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-c").UID("p-c").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-d").UID("p-d").Node("node-c").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -982,7 +982,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "two node inclusion Constraints, zone: honor/ignore, node: ignore/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
@@ -993,9 +993,9 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-x").Label("zone", "zone2").Label("node", "node-x").Label("foo", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1032,7 +1032,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "two node inclusion Constraints, zone: honor/honor, node: honor/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, &honorPolicy, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -1042,9 +1042,9 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-x").Label("zone", "zone2").Label("node", "node-x").Label("foo", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1081,7 +1081,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "two node inclusion Constraints, zone: honor/ignore, node: honor/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
@@ -1093,10 +1093,10 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1132,7 +1132,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "two node inclusion Constraints, zone: ignore/ignore, node: honor/honor",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, &honorPolicy, nil).
@@ -1144,11 +1144,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Label("foo", "").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x2").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x2").UID("p-x2").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1184,7 +1184,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "matchLabelKeys ignored when feature gate disabled",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, []string{"bar"}).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1194,11 +1194,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1223,7 +1223,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "matchLabelKeys ANDed with LabelSelector when LabelSelector isn't empty",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "a").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "a").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, []string{"bar"}).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1233,11 +1233,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("bar", "a").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Label("bar", "a").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("bar", "a").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Label("bar", "a").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("bar", "").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1262,7 +1262,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "matchLabelKeys ANDed with LabelSelector when LabelSelector is empty",
-			pod: st.MakePod().Name("p").Label("foo", "a").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "a").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, st.MakeLabelSelector().Obj(), nil, nil, nil, []string{"foo"}).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1272,11 +1272,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "a").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1301,7 +1301,7 @@ func TestPreFilterState(t *testing.T) {
 		},
 		{
 			name: "key in matchLabelKeys is ignored when it isn't exist in pod.labels",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, []string{"bar"}).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1311,11 +1311,11 @@ func TestPreFilterState(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "a").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "a").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "a").Obj(),
 			},
 			want: &preFilterState{
 				Constraints: []topologySpreadConstraint{
@@ -1391,10 +1391,10 @@ func TestPreFilterStateAddPod(t *testing.T) {
 	}{
 		{
 			name: "node a and b both impact current min match",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod:     st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod:     st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: nil, // it's an empty cluster
 			nodeIdx:      0,
 			nodes: []*v1.Node{
@@ -1414,12 +1414,12 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "only node a impacts current min match",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1439,12 +1439,12 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod in a different namespace doesn't change topologyKeyToMinPodsMap",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-a1").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1464,12 +1464,12 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add pod on non-critical node won't trigger re-calculation",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
 			},
 			nodeIdx: 1,
 			nodes: []*v1.Node{
@@ -1489,11 +1489,11 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "node a and x both impact topologyKeyToMinPodsMap on zone and node",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod:     st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod:     st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: nil, // it's an empty cluster
 			nodeIdx:      0,
 			nodes: []*v1.Node{
@@ -1516,13 +1516,13 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "only node a impacts topologyKeyToMinPodsMap on zone and node",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1545,15 +1545,15 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "node a impacts topologyKeyToMinPodsMap on node, node x impacts topologyKeyToMinPodsMap on zone",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1578,15 +1578,15 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "Constraints hold different labelSelectors, node a impacts topologyKeyToMinPodsMap on zone",
-			preemptor: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-x2").Node("node-x").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-x2").UID("p-x2").Node("node-x").Label("bar", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1621,15 +1621,15 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "Constraints hold different labelSelectors, node a impacts topologyKeyToMinPodsMap on both zone and node",
-			preemptor: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
 			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("bar", "").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("bar", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-x2").Node("node-x").Label("bar", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("bar", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-x2").UID("p-x2").Node("node-x").Label("bar", "").Obj(),
 			},
 			nodeIdx: 0,
 			nodes: []*v1.Node{
@@ -1664,14 +1664,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling node affinity unmatched pod with NodeInclusionPolicy disabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  0,
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -1690,14 +1690,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling node affinity unmatched pod with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  0,
-			addedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+			addedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -1716,14 +1716,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling node affinity matched pod with NodeInclusionPolicy disabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  1,
-			addedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			addedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -1743,14 +1743,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling node affinity matched pod with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  1,
-			addedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			addedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -1770,14 +1770,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a label selector not matched pod when with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  1,
-			addedPod: st.MakePod().Name("p-b1").Node("node-b").Label("zone", "zone2").Obj(),
+			addedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -1797,14 +1797,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling taint untolerated pod with NodeInclusionPolicy disabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  1,
-			addedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			addedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Taints(taints).Obj(),
@@ -1824,14 +1824,14 @@ func TestPreFilterStateAddPod(t *testing.T) {
 		},
 		{
 			name: "add a pod when scheduling taint tolerated pod with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").Toleration(v1.TaintNodeUnschedulable).
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").Toleration(v1.TaintNodeUnschedulable).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:  1,
-			addedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			addedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Taints(taints).Obj(),
@@ -1906,7 +1906,7 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 			// A high priority pod may not be scheduled due to node taints or resource shortage.
 			// So preemption is triggered.
 			name: "one spreadConstraint on zone, topologyKeyToMinPodsMap unchanged",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1915,9 +1915,9 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 				st.MakeNode().Name("node-x").Label("zone", "zone2").Label("node", "node-x").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
 			},
 			deletedPodIdx: 0, // remove pod "p-a1"
 			nodeIdx:       0, // node-a
@@ -1934,7 +1934,7 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "one spreadConstraint on node, topologyKeyToMinPodsMap changed",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1944,10 +1944,10 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			deletedPodIdx: 0, // remove pod "p-a1"
 			nodeIdx:       0, // node-a
@@ -1964,7 +1964,7 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "delete an irrelevant pod won't help",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -1974,11 +1974,11 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a0").Node("node-a").Label("bar", "").Obj(),
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a0").UID("p-a0").Node("node-a").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			deletedPodIdx: 0, // remove pod "p-a0"
 			nodeIdx:       0, // node-a
@@ -1995,7 +1995,7 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "delete a non-existing pod won't help",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2005,10 +2005,10 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			deletedPodIdx: -1,
 			deletedPod:    st.MakePod().Name("p-a0").Node("node-a").Label("bar", "").Obj(),
@@ -2026,7 +2026,7 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "two spreadConstraints",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2036,11 +2036,11 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 				st.MakeNode().Name("node-x").Label("zone", "zone2").Label("node", "node-x").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x2").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x2").UID("p-x2").Node("node-x").Label("foo", "").Obj(),
 			},
 			deletedPodIdx: 3, // remove pod "p-x1"
 			nodeIdx:       2, // node-x
@@ -2061,14 +2061,14 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "remove a pod when scheduling node affinity unmatched pod with NodeInclusionPolicy disabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:    0,
-			deletedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+			deletedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -2087,14 +2087,14 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "remove a pod when scheduling node affinity unmatched pod with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").NodeAffinityNotIn("foo", []string{"bar"}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:    0,
-			deletedPod: st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+			deletedPod: st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -2113,14 +2113,14 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "remove a pod when scheduling node affinity matched pod with NodeInclusionPolicy disabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:    1,
-			deletedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			deletedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -2140,14 +2140,14 @@ func TestPreFilterStateRemovePod(t *testing.T) {
 		},
 		{
 			name: "remove a pod when scheduling node affinity matched pod with NodeInclusionPolicy enabled",
-			preemptor: st.MakePod().Name("p").Label("foo", "").
+			preemptor: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodeIdx:    1,
-			deletedPod: st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+			deletedPod: st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Label("zone", "zone1").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Label("zone", "zone2").Obj(),
 			},
 			nodes: []*v1.Node{
 				st.MakeNode().Name("node-a").Label("zone", "zone1").Label("node", "node-a").Label("foo", "bar").Obj(),
@@ -2213,7 +2213,7 @@ func BenchmarkFilter(b *testing.B) {
 	}{
 		{
 			name: "1000nodes/single-constraint-zone",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, v1.LabelTopologyZone, v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			existingPodsNum:  10000,
@@ -2222,7 +2222,7 @@ func BenchmarkFilter(b *testing.B) {
 		},
 		{
 			name: "1000nodes/single-constraint-node",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, v1.LabelHostname, v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			existingPodsNum:  10000,
@@ -2231,7 +2231,7 @@ func BenchmarkFilter(b *testing.B) {
 		},
 		{
 			name: "1000nodes/two-Constraints-zone-node",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, v1.LabelTopologyZone, v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, v1.LabelHostname, v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2289,7 +2289,7 @@ func TestSingleConstraint(t *testing.T) {
 	}{
 		{
 			name: "no existing pods",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2307,7 +2307,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "no existing pods, incoming pod doesn't match itself",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2325,7 +2325,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "existing pods in a different namespace do not count",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2335,10 +2335,10 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Namespace("ns2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Namespace("ns1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Namespace("ns2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2349,7 +2349,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across zones as 3/3, all nodes fit",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2359,12 +2359,12 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2377,7 +2377,7 @@ func TestSingleConstraint(t *testing.T) {
 			// TODO(Huang-Wei): maybe document this to remind users that typos on node labels
 			// can cause unexpected behavior
 			name: "pods spread across zones as 1/2 due to absence of label 'zone' on node-b",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2387,10 +2387,10 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2415,7 +2415,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across nodes as 2/1/0/3, only node-x fits",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2425,12 +2425,12 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2441,7 +2441,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across nodes as 2/1/0/3, maxSkew is 2, node-b and node-x fit",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(2, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2451,12 +2451,12 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2471,7 +2471,7 @@ func TestSingleConstraint(t *testing.T) {
 			// in this case, placement of the new pod doesn't change pod distribution of the cluster
 			// as the incoming pod doesn't have label "foo"
 			name: "pods spread across nodes as 2/1/0/3, but pod doesn't match itself",
-			pod: st.MakePod().Name("p").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("bar", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2481,12 +2481,12 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2502,7 +2502,7 @@ func TestSingleConstraint(t *testing.T) {
 			// still expected to be fits;
 			// the fact that node-a fits can prove the underlying logic works
 			name: "incoming pod has nodeAffinity, pods spread as 2/~1~/~0~/3, hence node-a fits",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityIn("node", []string{"node-a", "node-y"}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2513,12 +2513,12 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2529,7 +2529,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "terminating Pods should be excluded",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2537,8 +2537,8 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-b").Label("node", "node-b").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a").Node("node-a").Label("foo", "").Terminating().Obj(),
-				st.MakePod().Name("p-b").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a").UID("p-a").Node("node-a").Label("foo", "").Terminating().Obj(),
+				st.MakePod().Name("p-b").UID("p-b").Node("node-b").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2548,7 +2548,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// In this unit test, NodeAffinity plugin is not involved, so node-b still fits
 			name: "incoming pod has nodeAffinity, pods spread as 0/~2~/0/1, hence node-a fits",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityNotIn("node", []string{"node-b"}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2559,9 +2559,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -2572,7 +2572,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across nodes as 2/2/1, maxSkew is 2, and the number of domains < minDomains, then the third node fits",
-			pod: st.MakePod().Name("p").Label("foo", "").SpreadConstraint(
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").SpreadConstraint(
 				2,
 				"node",
 				v1.DoNotSchedule,
@@ -2588,11 +2588,11 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-c1").Node("node-c").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-c1").UID("p-c1").Node("node-c").Label("foo", "").Obj(),
 			},
 			enableMinDomains: true,
 			wantStatusCode: map[string]framework.Code{
@@ -2603,7 +2603,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across nodes as 2/2/1, maxSkew is 2, and the number of domains > minDomains, then the all nodes fit",
-			pod: st.MakePod().Name("p").Label("foo", "").SpreadConstraint(
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").SpreadConstraint(
 				2,
 				"node",
 				v1.DoNotSchedule,
@@ -2619,11 +2619,11 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-c").Label("node", "node-c").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-c1").Node("node-c").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-c1").UID("p-c1").Node("node-c").Label("foo", "").Obj(),
 			},
 			enableMinDomains: true,
 			wantStatusCode: map[string]framework.Code{
@@ -2634,7 +2634,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across zone as 2/1, maxSkew is 2 and the number of domains < minDomains, then the third and fourth nodes fit",
-			pod: st.MakePod().Name("p").Label("foo", "").SpreadConstraint(
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").SpreadConstraint(
 				2,
 				"zone",
 				v1.DoNotSchedule,
@@ -2651,9 +2651,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			enableMinDomains: true,
 			wantStatusCode: map[string]framework.Code{
@@ -2665,7 +2665,7 @@ func TestSingleConstraint(t *testing.T) {
 		},
 		{
 			name: "pods spread across zone as 2/1, maxSkew is 2 and the number of domains > minDomains, then the all nodes fit",
-			pod: st.MakePod().Name("p").Label("foo", "").SpreadConstraint(
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").SpreadConstraint(
 				2,
 				"zone",
 				v1.DoNotSchedule,
@@ -2682,9 +2682,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			enableMinDomains: true,
 			wantStatusCode: map[string]framework.Code{
@@ -2697,7 +2697,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~0~
 			name: "NodeAffinityPolicy honored with labelSelectors",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2708,9 +2708,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2723,7 +2723,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~1~
 			name: "NodeAffinityPolicy ignored with labelSelectors",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
 				Obj(),
@@ -2734,9 +2734,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2749,7 +2749,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~0~
 			name: "NodeAffinityPolicy honored with nodeAffinity",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityIn("foo", []string{""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2760,9 +2760,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2775,7 +2775,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~1~
 			name: "NodeAffinityPolicy ignored with labelSelectors",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeAffinityIn("foo", []string{""}).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
 				Obj(),
@@ -2786,9 +2786,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2801,7 +2801,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~0~
 			name: "NodeTaintsPolicy honored",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, &honorPolicy, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2811,9 +2811,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Taints(taints).Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2826,7 +2826,7 @@ func TestSingleConstraint(t *testing.T) {
 		{
 			// pods spread across node as 1/1/0/~1~
 			name: "NodeTaintsPolicy ignored",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
 			nodes: []*v1.Node{
@@ -2836,9 +2836,9 @@ func TestSingleConstraint(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("node", "node-y").Taints(taints).Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-b1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b2").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b2").UID("p-b2").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2886,7 +2886,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-x
 			// intersection of (1) and (2) returns node-x
 			name: "two Constraints on zone and node, spreads = [3/3, 2/1/0/3]",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2897,12 +2897,12 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2916,7 +2916,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-x
 			// intersection of (1) and (2) returns no node
 			name: "two Constraints on zone and node, spreads = [3/4, 2/1/0/4]",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2927,13 +2927,13 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y4").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y4").UID("p-y4").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2947,7 +2947,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-a, node-b or node-x
 			// intersection of (1) and (2) returns node-x
 			name: "Constraints hold different labelSelectors, spreads = [1/0, 1/0/0/1]",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2958,8 +2958,8 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("bar", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -2973,7 +2973,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-a or node-b
 			// intersection of (1) and (2) returns no node
 			name: "Constraints hold different labelSelectors, spreads = [1/0, 0/0/1/1]",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -2984,9 +2984,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("bar", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("bar", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("bar", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3000,7 +3000,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-b or node-x
 			// intersection of (1) and (2) returns node-b
 			name: "Constraints hold different labelSelectors, spreads = [2/3, 1/0/0/1]",
-			pod: st.MakePod().Name("p").Label("foo", "").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -3011,11 +3011,11 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-a2").Node("node-a").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y2").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a2").UID("p-a2").Node("node-a").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y2").UID("p-y2").Node("node-y").Label("foo", "").Label("bar", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3029,7 +3029,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-a or node-b
 			// intersection of (1) and (2) returns node-a and node-b
 			name: "Constraints hold different labelSelectors but pod doesn't match itself on 'zone' constraint",
-			pod: st.MakePod().Name("p").Label("bar", "").
+			pod: st.MakePod().Name("p").UID("p").Label("bar", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, barSelector, nil, nil, nil, nil).
 				Obj(),
@@ -3040,9 +3040,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-x1").Node("node-x").Label("bar", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("bar", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-x1").UID("p-x1").Node("node-x").Label("bar", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("bar", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Success,
@@ -3056,7 +3056,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, incoming pod can be placed on node-b (node-x doesn't have the required label)
 			// intersection of (1) and (2) returns node-b
 			name: "two Constraints on zone and node, absence of label 'node' on node-x, spreads = [1/1, 1/0/0/1]",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -3067,8 +3067,8 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y3").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y3").UID("p-y3").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3082,7 +3082,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, pods spread across zones as 1/1/0/~1~
 			// intersection of (1) and (2) returns node-x
 			name: "two node inclusion Constraints, zone: honor/ignore, node: ignore/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
@@ -3094,9 +3094,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3111,7 +3111,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, pods spread across zones as 1/1/0/~1~
 			// intersection of (1) and (2) returns node-x
 			name: "two node inclusion Constraints, zone: honor/honor, node: honor/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, &honorPolicy, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				Obj(),
@@ -3122,9 +3122,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Taints(taints).Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3139,7 +3139,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, pods spread across zones as 1/0/0/~1~
 			// intersection of (1) and (2) returns node-x
 			name: "two node inclusion Constraints, zone: honor/ignore, node: honor/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, nil, nil, nil).
@@ -3151,9 +3151,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Label("foo", "").Taints(taints).Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,
@@ -3168,7 +3168,7 @@ func TestMultipleConstraints(t *testing.T) {
 			// 2. to fulfil "node" constraint, pods spread across zones as 1/~1~/0/~1~
 			// intersection of (1) and (2) returns node-x
 			name: "two node inclusion Constraints, zone: honor/honor, node: ignore/ignore",
-			pod: st.MakePod().Name("p").Label("foo", "").
+			pod: st.MakePod().Name("p").UID("p").Label("foo", "").
 				NodeSelector(map[string]string{"foo": ""}).
 				SpreadConstraint(1, "zone", v1.DoNotSchedule, fooSelector, nil, nil, &honorPolicy, nil).
 				SpreadConstraint(1, "node", v1.DoNotSchedule, fooSelector, nil, &ignorePolicy, nil, nil).
@@ -3180,9 +3180,9 @@ func TestMultipleConstraints(t *testing.T) {
 				st.MakeNode().Name("node-y").Label("zone", "zone2").Label("node", "node-y").Label("foo", "").Taints(taints).Obj(),
 			},
 			existingPods: []*v1.Pod{
-				st.MakePod().Name("p-a1").Node("node-a").Label("foo", "").Obj(),
-				st.MakePod().Name("p-b1").Node("node-b").Label("foo", "").Obj(),
-				st.MakePod().Name("p-y1").Node("node-y").Label("foo", "").Obj(),
+				st.MakePod().Name("p-a1").UID("p-a1").Node("node-a").Label("foo", "").Obj(),
+				st.MakePod().Name("p-b1").UID("p-b1").Node("node-b").Label("foo", "").Obj(),
+				st.MakePod().Name("p-y1").UID("p-y1").Node("node-y").Label("foo", "").Obj(),
 			},
 			wantStatusCode: map[string]framework.Code{
 				"node-a": framework.Unschedulable,

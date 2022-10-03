@@ -20,13 +20,14 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 // CacheComparer is an implementation of the Scheduler's cache comparer.
@@ -91,9 +92,13 @@ func (c *CacheComparer) ComparePods(pods, waitingPods []*v1.Pod, nodeinfos map[s
 
 	cached := []string{}
 	for _, nodeinfo := range nodeinfos {
-		for _, p := range nodeinfo.Pods {
-			cached = append(cached, string(p.Pod.UID))
-		}
+		// for _, p := range nodeinfo.Pods {
+		// 	cached = append(cached, string(p.Pod.UID))
+		// }
+		nodeinfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+			cached = append(cached, string(so.(*framework.PodInfo).Pod.UID))
+			return true
+		})
 	}
 	for _, pod := range waitingPods {
 		cached = append(cached, string(pod.UID))

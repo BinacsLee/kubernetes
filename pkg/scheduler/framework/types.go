@@ -30,6 +30,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
 )
 
@@ -125,6 +126,14 @@ type PodInfo struct {
 	PreferredAffinityTerms     []WeightedAffinityTerm
 	PreferredAntiAffinityTerms []WeightedAffinityTerm
 	ParseError                 error
+}
+
+var _ splay.StoredObj = &PodInfo{}
+
+func (pi *PodInfo) Key() string {
+	key, _ := GetPodKey(pi.Pod)
+	// return pi.Pod.Namespace + "/" + pi.Pod.Name + "/" + key
+	return key
 }
 
 // DeepCopy returns a deep copy of the PodInfo object.
@@ -380,7 +389,8 @@ type NodeInfo struct {
 	node *v1.Node
 
 	// Pods running on the node.
-	Pods []*PodInfo
+	// Pods []*PodInfo
+	Pods splay.Splay
 
 	// The subset of pods with affinity.
 	PodsWithAffinity []*PodInfo
@@ -521,11 +531,17 @@ func (r *Resource) SetMaxResource(rl v1.ResourceList) {
 	}
 }
 
+func PodInfoCmpFunc(so1, so2 splay.StoredObj) bool {
+	p1, p2 := so1.(*PodInfo).Pod, so2.(*PodInfo).Pod
+	return schedutil.MoreImportantPod(p1, p2)
+}
+
 // NewNodeInfo returns a ready to use empty NodeInfo object.
 // If any pods are given in arguments, their information will be aggregated in
 // the returned object.
 func NewNodeInfo(pods ...*v1.Pod) *NodeInfo {
 	ni := &NodeInfo{
+		Pods:             splay.NewSplay(PodInfoCmpFunc, nil),
 		Requested:        &Resource{},
 		NonZeroRequested: &Resource{},
 		Allocatable:      &Resource{},
@@ -552,6 +568,7 @@ func (n *NodeInfo) Node() *v1.Node {
 func (n *NodeInfo) Clone() *NodeInfo {
 	clone := &NodeInfo{
 		node:             n.node,
+		Pods:             splay.NewSplay(PodInfoCmpFunc, nil),
 		Requested:        n.Requested.Clone(),
 		NonZeroRequested: n.NonZeroRequested.Clone(),
 		Allocatable:      n.Allocatable.Clone(),
@@ -560,8 +577,14 @@ func (n *NodeInfo) Clone() *NodeInfo {
 		PVCRefCounts:     make(map[string]int),
 		Generation:       n.Generation,
 	}
-	if len(n.Pods) > 0 {
-		clone.Pods = append([]*PodInfo(nil), n.Pods...)
+	// if len(n.Pods) > 0 {
+	// 	clone.Pods = append([]*PodInfo(nil), n.Pods...)
+	// }
+	if n.Pods.Len() > 0 {
+		n.Pods.ConditionRange(func(so splay.StoredObj) bool {
+			clone.Pods.Insert(so)
+			return true
+		})
 	}
 	if len(n.UsedPorts) > 0 {
 		// HostPortInfo is a map-in-map struct
@@ -587,10 +610,15 @@ func (n *NodeInfo) Clone() *NodeInfo {
 
 // String returns representation of human readable format of this NodeInfo.
 func (n *NodeInfo) String() string {
-	podKeys := make([]string, len(n.Pods))
-	for i, p := range n.Pods {
-		podKeys[i] = p.Pod.Name
-	}
+	// podKeys := make([]string, len(n.Pods))
+	// for i, p := range n.Pods {
+	// 	podKeys[i] = p.Pod.Name
+	// }
+	podKeys := make([]string, 0, n.Pods.Len())
+	n.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		podKeys = append(podKeys, so.(*PodInfo).Pod.Name)
+		return true
+	})
 	return fmt.Sprintf("&NodeInfo{Pods:%v, RequestedResource:%#v, NonZeroRequest: %#v, UsedPort: %#v, AllocatableResource:%#v}",
 		podKeys, n.Requested, n.NonZeroRequested, n.UsedPorts, n.Allocatable)
 }
@@ -610,7 +638,8 @@ func (n *NodeInfo) AddPodInfo(podInfo *PodInfo) {
 	}
 	n.NonZeroRequested.MilliCPU += non0CPU
 	n.NonZeroRequested.Memory += non0Mem
-	n.Pods = append(n.Pods, podInfo)
+	// n.Pods = append(n.Pods, podInfo)
+	n.Pods.Insert(podInfo)
 	if podWithAffinity(podInfo.Pod) {
 		n.PodsWithAffinity = append(n.PodsWithAffinity, podInfo)
 	}
@@ -671,39 +700,73 @@ func (n *NodeInfo) RemovePod(pod *v1.Pod) error {
 		n.PodsWithRequiredAntiAffinity = removeFromSlice(n.PodsWithRequiredAntiAffinity, k)
 	}
 
-	for i := range n.Pods {
-		k2, err := GetPodKey(n.Pods[i].Pod)
-		if err != nil {
-			klog.ErrorS(err, "Cannot get pod key", "pod", klog.KObj(n.Pods[i].Pod))
-			continue
+	if p := n.Pods.Get(splay.NewStoredObjForLookup(k)); p != nil {
+		n.Pods.Delete(p)
+
+		// reduce the resource data
+		res, non0CPU, non0Mem := calculateResource(pod)
+
+		n.Requested.MilliCPU -= res.MilliCPU
+		n.Requested.Memory -= res.Memory
+		n.Requested.EphemeralStorage -= res.EphemeralStorage
+		if len(res.ScalarResources) > 0 && n.Requested.ScalarResources == nil {
+			n.Requested.ScalarResources = map[v1.ResourceName]int64{}
 		}
-		if k == k2 {
-			// delete the element
-			n.Pods[i] = n.Pods[len(n.Pods)-1]
-			n.Pods = n.Pods[:len(n.Pods)-1]
-			// reduce the resource data
-			res, non0CPU, non0Mem := calculateResource(pod)
-
-			n.Requested.MilliCPU -= res.MilliCPU
-			n.Requested.Memory -= res.Memory
-			n.Requested.EphemeralStorage -= res.EphemeralStorage
-			if len(res.ScalarResources) > 0 && n.Requested.ScalarResources == nil {
-				n.Requested.ScalarResources = map[v1.ResourceName]int64{}
-			}
-			for rName, rQuant := range res.ScalarResources {
-				n.Requested.ScalarResources[rName] -= rQuant
-			}
-			n.NonZeroRequested.MilliCPU -= non0CPU
-			n.NonZeroRequested.Memory -= non0Mem
-
-			// Release ports when remove Pods.
-			n.updateUsedPorts(pod, false)
-			n.updatePVCRefCounts(pod, false)
-
-			n.Generation = nextGeneration()
-			n.resetSlicesIfEmpty()
-			return nil
+		for rName, rQuant := range res.ScalarResources {
+			n.Requested.ScalarResources[rName] -= rQuant
 		}
+		n.NonZeroRequested.MilliCPU -= non0CPU
+		n.NonZeroRequested.Memory -= non0Mem
+
+		// Release ports when remove Pods.
+		n.updateUsedPorts(pod, false)
+		n.updatePVCRefCounts(pod, false)
+
+		n.Generation = nextGeneration()
+		n.resetSlicesIfEmpty()
+		return nil
+	}
+	/*
+		for i := range n.Pods {
+			k2, err := GetPodKey(n.Pods[i].Pod)
+			if err != nil {
+				klog.ErrorS(err, "Cannot get pod key", "pod", klog.KObj(n.Pods[i].Pod))
+				continue
+			}
+			if k == k2 {
+				// delete the element
+				n.Pods[i] = n.Pods[len(n.Pods)-1]
+				n.Pods = n.Pods[:len(n.Pods)-1]
+				// reduce the resource data
+				res, non0CPU, non0Mem := calculateResource(pod)
+
+				n.Requested.MilliCPU -= res.MilliCPU
+				n.Requested.Memory -= res.Memory
+				n.Requested.EphemeralStorage -= res.EphemeralStorage
+				if len(res.ScalarResources) > 0 && n.Requested.ScalarResources == nil {
+					n.Requested.ScalarResources = map[v1.ResourceName]int64{}
+				}
+				for rName, rQuant := range res.ScalarResources {
+					n.Requested.ScalarResources[rName] -= rQuant
+				}
+				n.NonZeroRequested.MilliCPU -= non0CPU
+				n.NonZeroRequested.Memory -= non0Mem
+
+				// Release ports when remove Pods.
+				n.updateUsedPorts(pod, false)
+				n.updatePVCRefCounts(pod, false)
+
+				n.Generation = nextGeneration()
+				n.resetSlicesIfEmpty()
+				return nil
+			}
+		}
+	*/
+	if pod == nil {
+		panic("pod is nil")
+	}
+	if n.node == nil {
+		panic("node is nil")
 	}
 	return fmt.Errorf("no corresponding pod %s in pods of node %s", pod.Name, n.node.Name)
 }
@@ -716,9 +779,9 @@ func (n *NodeInfo) resetSlicesIfEmpty() {
 	if len(n.PodsWithRequiredAntiAffinity) == 0 {
 		n.PodsWithRequiredAntiAffinity = nil
 	}
-	if len(n.Pods) == 0 {
-		n.Pods = nil
-	}
+	// if len(n.Pods) == 0 {
+	// 	n.Pods = nil
+	// }
 }
 
 func max(a, b int64) int64 {

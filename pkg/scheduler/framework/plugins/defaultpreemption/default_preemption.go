@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/feature"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 	"k8s.io/kubernetes/pkg/scheduler/framework/preemption"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/scheduler/util"
 )
@@ -162,12 +163,26 @@ func (pl *DefaultPreemption) SelectVictimsOnNode(
 	// As the first step, remove all the lower priority pods from the node and
 	// check if the given pod can be scheduled.
 	podPriority := corev1helpers.PodPriority(pod)
-	for _, pi := range nodeInfo.Pods {
-		if corev1helpers.PodPriority(pi.Pod) < podPriority {
-			potentialVictims = append(potentialVictims, pi)
-			if err := removePod(pi); err != nil {
-				return nil, 0, framework.AsStatus(err)
-			}
+	// for _, pi := range nodeInfo.Pods {
+	// 	if corev1helpers.PodPriority(pi.Pod) < podPriority {
+	// 		potentialVictims = append(potentialVictims, pi)
+	// 		if err := removePod(pi); err != nil {
+	// 			return nil, 0, framework.AsStatus(err)
+	// 		}
+	// 	}
+	// }
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		pi := so.(*framework.PodInfo)
+		if corev1helpers.PodPriority(pi.Pod) >= podPriority {
+			return false
+		}
+		potentialVictims = append(potentialVictims, pi)
+		return true
+	})
+	for i := range potentialVictims {
+		pi := potentialVictims[i]
+		if err := removePod(pi); err != nil {
+			return nil, 0, framework.AsStatus(err)
 		}
 	}
 
@@ -248,12 +263,25 @@ func (pl *DefaultPreemption) PodEligibleToPreemptOthers(pod *v1.Pod, nominatedNo
 
 		if nodeInfo, _ := nodeInfos.Get(nomNodeName); nodeInfo != nil {
 			podPriority := corev1helpers.PodPriority(pod)
-			for _, p := range nodeInfo.Pods {
+			var errStr string
+			nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+				p := so.(*framework.PodInfo)
 				if p.Pod.DeletionTimestamp != nil && corev1helpers.PodPriority(p.Pod) < podPriority {
-					// There is a terminating pod on the nominated node.
-					return false, fmt.Sprint("not eligible due to a terminating pod on the nominated node.")
+					errStr = fmt.Sprint("not eligible due to a terminating pod on the nominated node.")
+					return false
 				}
+				return true
+			})
+			if len(errStr) > 0 {
+				// There is a terminating pod on the nominated node.
+				return false, errStr
 			}
+			// for _, p := range nodeInfo.Pods {
+			// 	if p.Pod.DeletionTimestamp != nil && corev1helpers.PodPriority(p.Pod) < podPriority {
+			// 		// There is a terminating pod on the nominated node.
+			// 		return false, fmt.Sprint("not eligible due to a terminating pod on the nominated node.")
+			// 	}
+			// }
 		}
 	}
 	return true, ""

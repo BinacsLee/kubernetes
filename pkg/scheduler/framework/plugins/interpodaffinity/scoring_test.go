@@ -378,7 +378,7 @@ func TestPreferredAffinity(t *testing.T) {
 	}{
 		{
 			name: "all nodes are same priority as Affinity is nil",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "node2", Labels: labelRgIndia}},
@@ -392,7 +392,7 @@ func TestPreferredAffinity(t *testing.T) {
 		{
 			name: "Affinity: pod that matches topology key & pods in nodes will get high score comparing to others" +
 				"which doesn't match either pods in nodes or in topology key",
-			pod: &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod: &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
 				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
 				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
@@ -411,7 +411,7 @@ func TestPreferredAffinity(t *testing.T) {
 		// get a low score.
 		{
 			name: "All the nodes that have the same topology key & label value with one of them has an existing pod that match the affinity rules, have the same score",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegion}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegion}, ObjectMeta: metav1.ObjectMeta{UID: "pod"}},
 			pods: []*v1.Pod{
 				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
 			},
@@ -428,7 +428,7 @@ func TestPreferredAffinity(t *testing.T) {
 		// while all the nodes in regionIndia should get another same score(low score).
 		{
 			name: "Affinity: nodes in one region has more matching pods comparing to other region, so the region which has more matches will get high score",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
 				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
 				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
@@ -449,11 +449,11 @@ func TestPreferredAffinity(t *testing.T) {
 		// Test with the different operators and values for pod affinity scheduling preference, including some match failures.
 		{
 			name: "Affinity: different Label operators and values for pod affinity scheduling preference, including some match failures ",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: affinity3}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: affinity3}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
-				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p3"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -466,10 +466,10 @@ func TestPreferredAffinity(t *testing.T) {
 		// but the existing pods have the inter pod affinity preference while the pod to schedule satisfy the preference.
 		{
 			name: "Affinity symmetry: considered only the preferredDuringSchedulingIgnoredDuringExecution in pod affinity symmetry",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1", Affinity: stayWithS1InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1", Affinity: stayWithS1InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -480,10 +480,10 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity symmetry with namespace selector",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1", Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1", Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -494,10 +494,10 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "AntiAffinity symmetry with namespace selector",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1", Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1", Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS2InRegion}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -508,10 +508,10 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity symmetry: considered RequiredDuringSchedulingIgnoredDuringExecution in pod affinity symmetry",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1", Affinity: hardAffinity}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: hardAffinity}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1", Affinity: hardAffinity}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: hardAffinity}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -529,10 +529,10 @@ func TestPreferredAffinity(t *testing.T) {
 		// But there are more pods on node1 that match the preference than node2. Then, node1 get a lower score than node2.
 		{
 			name: "Anti Affinity: pod that does not match existing pods in node will get high score ",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelAzAz1}},
@@ -542,10 +542,10 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Anti Affinity: pod that does not match topology key & match the pods in nodes will get higher score comparing to others ",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelAzAz1}},
@@ -555,11 +555,11 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Anti Affinity: one node has more matching pods comparing to other node, so the node which has more unmatches will get high score",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p3"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelAzAz1}},
@@ -570,10 +570,10 @@ func TestPreferredAffinity(t *testing.T) {
 		// Test the symmetry cases for anti affinity
 		{
 			name: "Anti Affinity symmetry: the existing pods in node which has anti affinity match will get high score",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1", Affinity: awayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
+				{Spec: v1.PodSpec{NodeName: "node1", Affinity: awayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelAzAz1}},
@@ -584,10 +584,10 @@ func TestPreferredAffinity(t *testing.T) {
 		// Test both  affinity and anti-affinity
 		{
 			name: "Affinity and Anti Affinity: considered only preferredDuringSchedulingIgnoredDuringExecution in both pod affinity & anti affinity",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -601,15 +601,15 @@ func TestPreferredAffinity(t *testing.T) {
 		// node-1,node-3,node-4 are in ChinaRegion others node-2,node-5 are in IndiaRegion
 		{
 			name: "Affinity and Anti Affinity: considering both affinity and anti-affinity, the pod to schedule and existing pods have the same labels",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node4"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node5"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p4"}},
+				{Spec: v1.PodSpec{NodeName: "node3"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p5"}},
+				{Spec: v1.PodSpec{NodeName: "node4"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p6"}},
+				{Spec: v1.PodSpec{NodeName: "node5"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p7"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChinaAzAz1}},
@@ -627,12 +627,12 @@ func TestPreferredAffinity(t *testing.T) {
 		// for Anti Affinity symmetry, the weights are:  0,  0,  0, -5
 		{
 			name: "Affinity and Anti Affinity and symmetry: considered only preferredDuringSchedulingIgnoredDuringExecution in both pod affinity & anti affinity & symmetry",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2}},
-				{Spec: v1.PodSpec{NodeName: "node3", Affinity: stayWithS1InRegionAwayFromS2InAz}},
-				{Spec: v1.PodSpec{NodeName: "node4", Affinity: awayFromS1InAz}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS2, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node3", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node4", Affinity: awayFromS1InAz}, ObjectMeta: metav1.ObjectMeta{UID: "p4"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -647,10 +647,10 @@ func TestPreferredAffinity(t *testing.T) {
 		// 2. The incoming pod doesn't have affinity.
 		{
 			name: "Avoid panic when partial nodes in a topology don't have pods with affinity",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS1InRegionAwayFromS2InAz}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node2", Affinity: stayWithS1InRegionAwayFromS2InAz}, ObjectMeta: metav1.ObjectMeta{UID: "p2"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -660,7 +660,7 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name:       "invalid Affinity fails PreScore",
-			pod:        &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAffinityLabels}},
+			pod:        &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAffinityLabels}, ObjectMeta: metav1.ObjectMeta{UID: "pod"}},
 			wantStatus: framework.NewStatus(framework.Error, `Invalid value: "{{.bad-value.}}"`),
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -669,7 +669,7 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name:       "invalid AntiAffinity fails PreScore",
-			pod:        &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAntiAffinityLabels}},
+			pod:        &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAntiAffinityLabels}, ObjectMeta: metav1.ObjectMeta{UID: "pod"}},
 			wantStatus: framework.NewStatus(framework.Error, `Invalid value: "{{.bad-value.}}"`),
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -678,12 +678,12 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity with pods matching NamespaceSelector",
-			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team2", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team2", Labels: podLabelSecurityS1, UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1, UID: "p4"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -693,12 +693,12 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity with pods matching both NamespaceSelector and Namespaces fields",
-			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: affinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team2", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team2", Labels: podLabelSecurityS1, UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1, UID: "p4"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -708,12 +708,12 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity with pods matching NamespaceSelector",
-			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team2", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team2", Labels: podLabelSecurityS1, UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1, UID: "p4"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},
@@ -723,12 +723,12 @@ func TestPreferredAffinity(t *testing.T) {
 		},
 		{
 			name: "Affinity with pods matching both NamespaceSelector and Namespaces fields",
-			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
+			pod:  &v1.Pod{Spec: v1.PodSpec{Affinity: antiAffinityNamespaceSelector}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "pod"}},
 			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team2", Labels: podLabelSecurityS1}},
-				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p1"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam1.team1", Labels: podLabelSecurityS1, UID: "p2"}},
+				{Spec: v1.PodSpec{NodeName: "node1"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team2", Labels: podLabelSecurityS1, UID: "p3"}},
+				{Spec: v1.PodSpec{NodeName: "node2"}, ObjectMeta: metav1.ObjectMeta{Namespace: "subteam2.team1", Labels: podLabelSecurityS1, UID: "p4"}},
 			},
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: labelRgChina}},

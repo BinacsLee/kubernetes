@@ -31,6 +31,7 @@ import (
 	extenderv1 "k8s.io/kube-scheduler/extender/v1"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 const (
@@ -209,10 +210,13 @@ func (h *HTTPExtender) convertToVictims(
 func (h *HTTPExtender) convertPodUIDToPod(
 	metaPod *extenderv1.MetaPod,
 	nodeInfo *framework.NodeInfo) (*v1.Pod, error) {
-	for _, p := range nodeInfo.Pods {
-		if string(p.Pod.UID) == metaPod.UID {
-			return p.Pod, nil
-		}
+	// for _, p := range nodeInfo.Pods {
+	// 	if string(p.Pod.UID) == metaPod.UID {
+	// 		return p.Pod, nil
+	// 	}
+	// }
+	if p := nodeInfo.Pods.Get(splay.NewStoredObjForLookup(string(metaPod.UID))); p != nil {
+		return p.(*framework.PodInfo).Pod, nil
 	}
 	return nil, fmt.Errorf("extender: %v claims to preempt pod (UID: %v) on node: %v, but the pod is not found on that node",
 		h.extenderURL, metaPod, nodeInfo.Node().Name)

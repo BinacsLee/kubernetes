@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"strings"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	"k8s.io/kubernetes/pkg/scheduler/internal/queue"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 // CacheDumper writes some information from the scheduler cache and the scheduling queue to the
@@ -66,11 +67,16 @@ func (d *CacheDumper) dumpSchedulingQueue() {
 func (d *CacheDumper) printNodeInfo(name string, n *framework.NodeInfo) string {
 	var nodeData strings.Builder
 	nodeData.WriteString(fmt.Sprintf("Node name: %s\nDeleted: %t\nRequested Resources: %+v\nAllocatable Resources:%+v\nScheduled Pods(number: %v):\n",
-		name, n.Node() == nil, n.Requested, n.Allocatable, len(n.Pods)))
+		// name, n.Node() == nil, n.Requested, n.Allocatable, len(n.Pods)))
+		name, n.Node() == nil, n.Requested, n.Allocatable, n.Pods.Len()))
 	// Dumping Pod Info
-	for _, p := range n.Pods {
-		nodeData.WriteString(printPod(p.Pod))
-	}
+	// for _, p := range n.Pods {
+	// 	nodeData.WriteString(printPod(p.Pod))
+	// }
+	n.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		nodeData.WriteString(printPod(so.(*framework.PodInfo).Pod))
+		return true
+	})
 	// Dumping nominated pods info on the node
 	nominatedPodInfos := d.podQueue.NominatedPodsForNode(name)
 	if len(nominatedPodInfos) != 0 {

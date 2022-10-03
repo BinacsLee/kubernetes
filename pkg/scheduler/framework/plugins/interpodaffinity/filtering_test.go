@@ -1079,16 +1079,16 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 	}{
 		{
 			name:       "no affinity exist",
-			pendingPod: st.MakePod().Name("pending").Labels(selector1).Obj(),
+			pendingPod: st.MakePod().Name("pending").UID("pending").Labels(selector1).Obj(),
 			existingPods: []*v1.Pod{
-				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1, UID: "p1"},
 					Spec: v1.PodSpec{NodeName: "nodeA"},
 				},
-				{ObjectMeta: metav1.ObjectMeta{Name: "p2"},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p2", UID: "p2"},
 					Spec: v1.PodSpec{NodeName: "nodeC"},
 				},
 			},
-			addedPod: st.MakePod().Name("addedPod").Labels(selector1).Node("nodeB").Obj(),
+			addedPod: st.MakePod().Name("addedPod").UID("addedPod").Labels(selector1).Node("nodeB").Obj(),
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "nodeA", Labels: label1}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "nodeB", Labels: label2}},
@@ -1100,7 +1100,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 		{
 			name: "preFilterState anti-affinity terms are updated correctly after adding and removing a pod",
 			pendingPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1, UID: "pending"},
 				Spec: v1.PodSpec{
 					Affinity: &v1.Affinity{
 						PodAntiAffinity: antiAffinityFooBar,
@@ -1108,10 +1108,10 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			existingPods: []*v1.Pod{
-				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1, UID: "p1"},
 					Spec: v1.PodSpec{NodeName: "nodeA"},
 				},
-				{ObjectMeta: metav1.ObjectMeta{Name: "p2"},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p2", UID: "p2"},
 					Spec: v1.PodSpec{
 						NodeName: "nodeC",
 						Affinity: &v1.Affinity{
@@ -1121,7 +1121,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			addedPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1, UID: "addedPod"},
 				Spec: v1.PodSpec{
 					NodeName: "nodeB",
 					Affinity: &v1.Affinity{
@@ -1142,7 +1142,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 		{
 			name: "preFilterState anti-affinity terms are updated correctly after adding and removing a pod",
 			pendingPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1, UID: "pending"},
 				Spec: v1.PodSpec{
 					Affinity: &v1.Affinity{
 						PodAntiAffinity: antiAffinityComplex,
@@ -1150,10 +1150,10 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			existingPods: []*v1.Pod{
-				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1, UID: "p1"},
 					Spec: v1.PodSpec{NodeName: "nodeA"},
 				},
-				{ObjectMeta: metav1.ObjectMeta{Name: "p2"},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p2", UID: "p2"},
 					Spec: v1.PodSpec{
 						NodeName: "nodeC",
 						Affinity: &v1.Affinity{
@@ -1163,7 +1163,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			addedPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1, UID: "addedPod"},
 				Spec: v1.PodSpec{
 					NodeName: "nodeA",
 					Affinity: &v1.Affinity{
@@ -1186,7 +1186,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 		{
 			name: "preFilterState matching pod affinity and anti-affinity are updated correctly after adding and removing a pod",
 			pendingPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "pending", Labels: selector1, UID: "pending"},
 				Spec: v1.PodSpec{
 					Affinity: &v1.Affinity{
 						PodAffinity: affinityComplex,
@@ -1194,7 +1194,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			existingPods: []*v1.Pod{
-				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1},
+				{ObjectMeta: metav1.ObjectMeta{Name: "p1", Labels: selector1, UID: "p1"},
 					Spec: v1.PodSpec{NodeName: "nodeA"},
 				},
 				{ObjectMeta: metav1.ObjectMeta{Name: "p2"},
@@ -1208,7 +1208,7 @@ func TestPreFilterStateAddRemovePod(t *testing.T) {
 				},
 			},
 			addedPod: &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1},
+				ObjectMeta: metav1.ObjectMeta{Name: "addedPod", Labels: selector1, UID: "addedPod"},
 				Spec: v1.PodSpec{
 					NodeName: "nodeA",
 					Affinity: &v1.Affinity{

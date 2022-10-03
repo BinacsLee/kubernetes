@@ -299,7 +299,7 @@ func (pl *PodTopologySpread) calPreFilterState(ctx context.Context, pod *v1.Pod)
 			}
 
 			pair := topologyPair{key: c.TopologyKey, value: node.Labels[c.TopologyKey]}
-			count := countPodsMatchSelector(nodeInfo.Pods, c.Selector, pod.Namespace)
+			count := countPodsMatchSelector(nodeInfo, c.Selector, pod.Namespace)
 			tpCounts[pair] = count
 		}
 		tpCountsByNode[i] = tpCounts

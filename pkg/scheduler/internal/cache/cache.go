@@ -364,7 +364,8 @@ func (cache *cacheImpl) PodCount() (int, error) {
 	// pre-allocating capacity.
 	count := 0
 	for _, n := range cache.nodes {
-		count += len(n.info.Pods)
+		// count += len(n.info.Pods)
+		count += n.info.Pods.Len()
 	}
 	return count, nil
 }
@@ -482,7 +483,8 @@ func (cache *cacheImpl) removePod(pod *v1.Pod) error {
 		if err := n.info.RemovePod(pod); err != nil {
 			return err
 		}
-		if len(n.info.Pods) == 0 && n.info.Node() == nil {
+		// if len(n.info.Pods) == 0 && n.info.Node() == nil {
+		if n.info.Pods.Len() == 0 && n.info.Node() == nil {
 			cache.removeNodeInfoFromList(pod.Spec.NodeName)
 		} else {
 			cache.moveNodeInfoToHead(pod.Spec.NodeName)
@@ -664,7 +666,8 @@ func (cache *cacheImpl) RemoveNode(node *v1.Node) error {
 	// We can't do it unconditionally, because notifications about pods are delivered
 	// in a different watch, and thus can potentially be observed later, even though
 	// they happened before node removal.
-	if len(n.info.Pods) == 0 {
+	if n.info.Pods.Len() == 0 {
+		// if len(n.info.Pods) == 0 {
 		cache.removeNodeInfoFromList(node.Name)
 	} else {
 		cache.moveNodeInfoToHead(node.Name)

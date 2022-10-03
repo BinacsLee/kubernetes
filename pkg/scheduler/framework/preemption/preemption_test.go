@@ -46,6 +46,7 @@ import (
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
 )
 
@@ -65,7 +66,13 @@ type FakePostFilterPlugin struct {
 func (pl *FakePostFilterPlugin) SelectVictimsOnNode(
 	ctx context.Context, state *framework.CycleState, pod *v1.Pod,
 	nodeInfo *framework.NodeInfo, pdbs []*policy.PodDisruptionBudget) (victims []*v1.Pod, numViolatingVictim int, status *framework.Status) {
-	return append(victims, nodeInfo.Pods[0].Pod), pl.numViolatingVictim, nil
+	var victim *v1.Pod
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		victim = so.(*framework.PodInfo).Pod
+		return false
+	})
+	return append(victims, victim), pl.numViolatingVictim, nil
+	// return append(victims, nodeInfo.Pods[0].Pod), pl.numViolatingVictim, nil
 }
 
 func (pl *FakePostFilterPlugin) GetOffsetAndNumCandidates(nodes int32) (int32, int32) {

@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 const (
@@ -203,12 +204,22 @@ func (pl *InterPodAffinity) getIncomingAffinityAntiAffinityCounts(ctx context.Co
 		}
 		affinity := make(topologyToMatchedTermCount)
 		antiAffinity := make(topologyToMatchedTermCount)
-		for _, existingPod := range nodeInfo.Pods {
+		/*
+			for _, existingPod := range nodeInfo.Pods {
+				affinity.updateWithAffinityTerms(podInfo.RequiredAffinityTerms, existingPod.Pod, node, 1)
+				// The incoming pod's terms have the namespaceSelector merged into the namespaces, and so
+				// here we don't lookup the existing pod's namespace labels, hence passing nil for nsLabels.
+				antiAffinity.updateWithAntiAffinityTerms(podInfo.RequiredAntiAffinityTerms, existingPod.Pod, nil, node, 1)
+			}
+		*/
+		nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+			existingPod := so.(*framework.PodInfo)
 			affinity.updateWithAffinityTerms(podInfo.RequiredAffinityTerms, existingPod.Pod, node, 1)
 			// The incoming pod's terms have the namespaceSelector merged into the namespaces, and so
 			// here we don't lookup the existing pod's namespace labels, hence passing nil for nsLabels.
 			antiAffinity.updateWithAntiAffinityTerms(podInfo.RequiredAntiAffinityTerms, existingPod.Pod, nil, node, 1)
-		}
+			return true
+		})
 
 		if len(affinity) > 0 || len(antiAffinity) > 0 {
 			k := atomic.AddInt32(&index, 1)

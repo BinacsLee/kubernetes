@@ -35,12 +35,12 @@ import (
 )
 
 var (
-	oneVolPod = st.MakePod().Volume(v1.Volume{
+	oneVolPod = st.MakePod().UID("oneVolPod").Volume(v1.Volume{
 		VolumeSource: v1.VolumeSource{
 			AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{VolumeID: "ovp"},
 		},
 	}).Obj()
-	twoVolPod = st.MakePod().Volume(v1.Volume{
+	twoVolPod = st.MakePod().UID("twoVolPod").Volume(v1.Volume{
 		VolumeSource: v1.VolumeSource{
 			AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{VolumeID: "tvp1"},
 		},
@@ -49,7 +49,7 @@ var (
 			AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{VolumeID: "tvp2"},
 		},
 	}).Obj()
-	splitVolsPod = st.MakePod().Volume(v1.Volume{
+	splitVolsPod = st.MakePod().UID("splitVolsPod").Volume(v1.Volume{
 		VolumeSource: v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{},
 		},
@@ -58,24 +58,24 @@ var (
 			AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{VolumeID: "svp"},
 		},
 	}).Obj()
-	nonApplicablePod = st.MakePod().Volume(v1.Volume{
+	nonApplicablePod = st.MakePod().UID("nonApplicablePod").Volume(v1.Volume{
 		VolumeSource: v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{},
 		},
 	}).Obj()
 
-	deletedPVCPod    = st.MakePod().PVC("deletedPVC").Obj()
-	twoDeletedPVCPod = st.MakePod().PVC("deletedPVC").PVC("anotherDeletedPVC").Obj()
-	deletedPVPod     = st.MakePod().PVC("pvcWithDeletedPV").Obj()
+	deletedPVCPod    = st.MakePod().UID("deletedPVCPod").PVC("deletedPVC").Obj()
+	twoDeletedPVCPod = st.MakePod().UID("twoDeletedPVCPod").PVC("deletedPVC").PVC("anotherDeletedPVC").Obj()
+	deletedPVPod     = st.MakePod().UID("deletedPVPod").PVC("pvcWithDeletedPV").Obj()
 	// deletedPVPod2 is a different pod than deletedPVPod but using the same PVC
-	deletedPVPod2       = st.MakePod().PVC("pvcWithDeletedPV").Obj()
-	anotherDeletedPVPod = st.MakePod().PVC("anotherPVCWithDeletedPV").Obj()
-	emptyPod            = st.MakePod().Obj()
-	unboundPVCPod       = st.MakePod().PVC("unboundPVC").Obj()
+	deletedPVPod2       = st.MakePod().UID("deletedPVPod2").PVC("pvcWithDeletedPV").Obj()
+	anotherDeletedPVPod = st.MakePod().UID("anotherDeletedPVPod").PVC("anotherPVCWithDeletedPV").Obj()
+	emptyPod            = st.MakePod().UID("emptyPod").Obj()
+	unboundPVCPod       = st.MakePod().UID("unboundPVCPod").PVC("unboundPVC").Obj()
 	// Different pod than unboundPVCPod, but using the same unbound PVC
-	unboundPVCPod2 = st.MakePod().PVC("unboundPVC").Obj()
+	unboundPVCPod2 = st.MakePod().UID("unboundPVCPod2").PVC("unboundPVC").Obj()
 	// pod with unbound PVC that's different to unboundPVC
-	anotherUnboundPVCPod = st.MakePod().PVC("anotherUnboundPVC").Obj()
+	anotherUnboundPVCPod = st.MakePod().UID("anotherUnboundPVCPod").PVC("anotherUnboundPVC").Obj()
 )
 
 func TestEphemeralLimits(t *testing.T) {
@@ -330,8 +330,8 @@ func TestAzureDiskLimits(t *testing.T) {
 }
 
 func TestEBSLimits(t *testing.T) {
-	unboundPVCWithInvalidSCPod := st.MakePod().PVC("unboundPVCWithInvalidSCPod").Obj()
-	unboundPVCWithDefaultSCPod := st.MakePod().PVC("unboundPVCWithDefaultSCPod").Obj()
+	unboundPVCWithInvalidSCPod := st.MakePod().UID("unboundPVCWithInvalidSCPod").PVC("unboundPVCWithInvalidSCPod").Obj()
+	unboundPVCWithDefaultSCPod := st.MakePod().UID("unboundPVCWithDefaultSCPod").PVC("unboundPVCWithDefaultSCPod").Obj()
 
 	tests := []struct {
 		newPod       *v1.Pod
@@ -825,9 +825,9 @@ func getFakePVLister(filterName string) fakeframework.PersistentVolumeLister {
 }
 
 func onePVCPod(filterName string) *v1.Pod {
-	return st.MakePod().PVC(fmt.Sprintf("some%sVol", filterName)).Obj()
+	return st.MakePod().UID("s").PVC(fmt.Sprintf("some%sVol", filterName)).Obj()
 }
 
 func splitPVCPod(filterName string) *v1.Pod {
-	return st.MakePod().PVC(fmt.Sprintf("someNon%sVol", filterName)).PVC(fmt.Sprintf("some%sVol", filterName)).Obj()
+	return st.MakePod().UID("s").PVC(fmt.Sprintf("someNon%sVol", filterName)).PVC(fmt.Sprintf("some%sVol", filterName)).Obj()
 }

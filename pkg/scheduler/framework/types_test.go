@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 func TestNewResource(t *testing.T) {
@@ -245,6 +246,14 @@ func makeBasePod(t testingMode, nodeName, objName, cpu, mem, extended string, po
 	}
 }
 
+func MakeSplayByPodInfos(pods []*PodInfo) splay.Splay {
+	s := splay.NewSplay(PodInfoCmpFunc, nil)
+	for i := range pods {
+		s.Insert(pods[i])
+	}
+	return s
+}
+
 func TestNewNodeInfo(t *testing.T) {
 	nodeName := "test-node"
 	pods := []*v1.Pod{
@@ -277,7 +286,7 @@ func TestNewNodeInfo(t *testing.T) {
 		},
 		ImageStates:  map[string]*ImageStateSummary{},
 		PVCRefCounts: map[string]int{},
-		Pods: []*PodInfo{
+		Pods: MakeSplayByPodInfos([]*PodInfo{
 			{
 				Pod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -336,7 +345,7 @@ func TestNewNodeInfo(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	gen := generation
@@ -345,8 +354,12 @@ func TestNewNodeInfo(t *testing.T) {
 		t.Errorf("Generation is not incremented. previous: %v, current: %v", gen, ni.Generation)
 	}
 	expected.Generation = ni.Generation
+	if !expected.Pods.Equal(ni.Pods) {
+		t.Errorf("...")
+	}
+	expected.Pods, ni.Pods = nil, nil
 	if !reflect.DeepEqual(expected, ni) {
-		t.Errorf("expected: %#v, got: %#v", expected, ni)
+		t.Errorf("expected: %#+v, got: %#+v", expected, ni)
 	}
 }
 
@@ -370,7 +383,7 @@ func TestNodeInfoClone(t *testing.T) {
 				},
 				ImageStates:  map[string]*ImageStateSummary{},
 				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				Pods: MakeSplayByPodInfos([]*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -429,7 +442,7 @@ func TestNodeInfoClone(t *testing.T) {
 							},
 						},
 					},
-				},
+				}),
 			},
 			expected: &NodeInfo{
 				Requested:        &Resource{},
@@ -444,7 +457,7 @@ func TestNodeInfoClone(t *testing.T) {
 				},
 				ImageStates:  map[string]*ImageStateSummary{},
 				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				Pods: MakeSplayByPodInfos([]*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -503,7 +516,7 @@ func TestNodeInfoClone(t *testing.T) {
 							},
 						},
 					},
-				},
+				}),
 			},
 		},
 	}
@@ -514,6 +527,10 @@ func TestNodeInfoClone(t *testing.T) {
 			// Modify the field to check if the result is a clone of the origin one.
 			test.nodeInfo.Generation += 10
 			test.nodeInfo.UsedPorts.Remove("127.0.0.1", "TCP", 80)
+			if !test.expected.Pods.Equal(ni.Pods) {
+				t.Errorf("...")
+			}
+			test.expected.Pods, ni.Pods = nil, nil
 			if !reflect.DeepEqual(test.expected, ni) {
 				t.Errorf("expected: %#v, got: %#v", test.expected, ni)
 			}
@@ -682,7 +699,7 @@ func TestNodeInfoAddPod(t *testing.T) {
 		},
 		ImageStates:  map[string]*ImageStateSummary{},
 		PVCRefCounts: map[string]int{"node_info_cache_test/pvc-1": 2, "node_info_cache_test/pvc-2": 1},
-		Pods: []*PodInfo{
+		Pods: MakeSplayByPodInfos([]*PodInfo{
 			{
 				Pod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -816,7 +833,7 @@ func TestNodeInfoAddPod(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	ni := fakeNodeInfo()
@@ -830,6 +847,10 @@ func TestNodeInfoAddPod(t *testing.T) {
 	}
 
 	expected.Generation = ni.Generation
+	if !expected.Pods.Equal(ni.Pods) {
+		t.Errorf("...")
+	}
+	expected.Pods, ni.Pods = nil, nil
 	if !reflect.DeepEqual(expected, ni) {
 		t.Errorf("expected: %#v, got: %#v", expected, ni)
 	}
@@ -890,7 +911,7 @@ func TestNodeInfoRemovePod(t *testing.T) {
 				},
 				ImageStates:  map[string]*ImageStateSummary{},
 				PVCRefCounts: map[string]int{"node_info_cache_test/pvc-1": 1},
-				Pods: []*PodInfo{
+				Pods: MakeSplayByPodInfos([]*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -966,7 +987,7 @@ func TestNodeInfoRemovePod(t *testing.T) {
 							},
 						},
 					},
-				},
+				}),
 			},
 		},
 		{
@@ -1040,7 +1061,7 @@ func TestNodeInfoRemovePod(t *testing.T) {
 				},
 				ImageStates:  map[string]*ImageStateSummary{},
 				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				Pods: MakeSplayByPodInfos([]*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -1074,7 +1095,7 @@ func TestNodeInfoRemovePod(t *testing.T) {
 							},
 						},
 					},
-				},
+				}),
 			},
 		},
 	}
@@ -1101,6 +1122,10 @@ func TestNodeInfoRemovePod(t *testing.T) {
 			}
 
 			test.expectedNodeInfo.Generation = ni.Generation
+			if !test.expectedNodeInfo.Pods.Equal(ni.Pods) {
+				t.Errorf("...")
+			}
+			test.expectedNodeInfo.Pods, ni.Pods = nil, nil
 			if !reflect.DeepEqual(test.expectedNodeInfo, ni) {
 				t.Errorf("expected: %#v, got: %#v", test.expectedNodeInfo, ni)
 			}

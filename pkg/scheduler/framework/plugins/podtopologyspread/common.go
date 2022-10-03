@@ -24,6 +24,7 @@ import (
 	"k8s.io/component-helpers/scheduling/corev1/nodeaffinity"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
+	"k8s.io/kubernetes/pkg/scheduler/internal/splay"
 )
 
 type topologyPair struct {
@@ -144,6 +145,22 @@ func mergeLabelSetWithSelector(matchLabels labels.Set, s labels.Selector) labels
 	return mergedSelector
 }
 
+func countPodsMatchSelector(nodeInfo *framework.NodeInfo, selector labels.Selector, ns string) int {
+	count := 0
+	nodeInfo.Pods.ConditionRange(func(so splay.StoredObj) bool {
+		p := so.(*framework.PodInfo)
+		if p.Pod.DeletionTimestamp != nil || p.Pod.Namespace != ns {
+			return true
+		}
+		if selector.Matches(labels.Set(p.Pod.Labels)) {
+			count++
+		}
+		return true
+	})
+	return count
+}
+
+/*
 func countPodsMatchSelector(podInfos []*framework.PodInfo, selector labels.Selector, ns string) int {
 	count := 0
 	for _, p := range podInfos {
@@ -157,3 +174,4 @@ func countPodsMatchSelector(podInfos []*framework.PodInfo, selector labels.Selec
 	}
 	return count
 }
+*/

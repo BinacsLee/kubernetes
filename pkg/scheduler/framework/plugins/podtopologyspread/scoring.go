@@ -179,7 +179,7 @@ func (pl *PodTopologySpread) PreScore(
 			if tpCount == nil {
 				continue
 			}
-			count := countPodsMatchSelector(nodeInfo.Pods, c.Selector, pod.Namespace)
+			count := countPodsMatchSelector(nodeInfo, c.Selector, pod.Namespace)
 			atomic.AddInt64(tpCount, int64(count))
 		}
 	}
@@ -216,7 +216,7 @@ func (pl *PodTopologySpread) Score(ctx context.Context, cycleState *framework.Cy
 		if tpVal, ok := node.Labels[c.TopologyKey]; ok {
 			var cnt int64
 			if c.TopologyKey == v1.LabelHostname {
-				cnt = int64(countPodsMatchSelector(nodeInfo.Pods, c.Selector, pod.Namespace))
+				cnt = int64(countPodsMatchSelector(nodeInfo, c.Selector, pod.Namespace))
 			} else {
 				pair := topologyPair{key: c.TopologyKey, value: tpVal}
 				cnt = *s.TopologyPairToPodCounts[pair]
