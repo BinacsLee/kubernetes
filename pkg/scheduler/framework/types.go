@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -30,10 +29,11 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/scheduler/internal/generationstore"
 	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
 )
 
-var generation int64
+var generation uint64
 
 // ActionType is an integer to represent one type of resource change.
 // Different ActionTypes can be bit-wised to compose new semantics.
@@ -371,56 +371,73 @@ type ImageStateSummary struct {
 	NumNodes int
 }
 
-// NodeInfo is node level aggregated information.
-type NodeInfo struct {
+type NodeInfo interface {
+	Node() *v1.Node
+	SetNode(*v1.Node)
+	RemoveNode()
+
+	AddPodInfo(*PodInfo)
+	AddPod(*v1.Pod)
+	RemovePod(*v1.Pod) error
+
+	Pods() []*PodInfo
+	PodsWithAffinity() []*PodInfo
+	PodsWithRequiredAntiAffinity() []*PodInfo
+	UsedPorts() HostPortInfo
+	ImageStates() map[string]*ImageStateSummary
+
+	String() string
+	Clone() NodeInfo
+	generationstore.StoredObj
+}
+
+// nodeInfo is node level aggregated information.
+type nodeInfo struct {
 	// Overall node information.
 	node *v1.Node
 
 	// Pods running on the node.
-	Pods []*PodInfo
+	pods []*PodInfo
 
 	// The subset of pods with affinity.
-	PodsWithAffinity []*PodInfo
+	podsWithAffinity []*PodInfo
 
 	// The subset of pods with required anti-affinity.
-	PodsWithRequiredAntiAffinity []*PodInfo
+	podsWithRequiredAntiAffinity []*PodInfo
 
 	// Ports allocated on the node.
-	UsedPorts HostPortInfo
+	usedPorts HostPortInfo
 
 	// Total requested resources of all pods on this node. This includes assumed
 	// pods, which scheduler has sent for binding, but may not be scheduled yet.
-	Requested *Resource
+	requested *Resource
 	// Total requested resources of all pods on this node with a minimum value
 	// applied to each container's CPU and memory requests. This does not reflect
 	// the actual resource requests for this node, but is used to avoid scheduling
 	// many zero-request pods onto one node.
-	NonZeroRequested *Resource
+	nonZeroRequested *Resource
 	// We store allocatedResources (which is Node.Status.Allocatable.*) explicitly
 	// as int64, to avoid conversions and accessing map.
-	Allocatable *Resource
+	allocatable *Resource
 
 	// ImageStates holds the entry of an image if and only if this image is on the node. The entry can be used for
 	// checking an image's existence and advanced usage (e.g., image locality scheduling policy) based on the image
 	// state information.
-	ImageStates map[string]*ImageStateSummary
+	imageStates map[string]*ImageStateSummary
 
 	// PVCRefCounts contains a mapping of PVC names to the number of pods on the node using it.
 	// Keys are in the format "namespace/name".
-	PVCRefCounts map[string]int
+	pvcRefCounts map[string]int
 
 	// Whenever NodeInfo changes, generation is bumped.
 	// This is used to avoid cloning it if the object didn't change.
-	Generation int64
+	generation uint64
 }
 
-// nextGeneration: Let's make sure history never forgets the name...
-// Increments the generation number monotonically ensuring that generation numbers never collide.
-// Collision of the generation numbers would be particularly problematic if a node was deleted and
-// added back with the same name. See issue#63262.
-func nextGeneration() int64 {
-	return atomic.AddInt64(&generation, 1)
-}
+var (
+	_ NodeInfo                  = &nodeInfo{}
+	_ generationstore.StoredObj = &nodeInfo{}
+)
 
 // Resource is a collection of compute resource.
 type Resource struct {
@@ -521,15 +538,14 @@ func (r *Resource) SetMaxResource(rl v1.ResourceList) {
 // NewNodeInfo returns a ready to use empty NodeInfo object.
 // If any pods are given in arguments, their information will be aggregated in
 // the returned object.
-func NewNodeInfo(pods ...*v1.Pod) *NodeInfo {
-	ni := &NodeInfo{
-		Requested:        &Resource{},
-		NonZeroRequested: &Resource{},
-		Allocatable:      &Resource{},
-		Generation:       nextGeneration(),
-		UsedPorts:        make(HostPortInfo),
-		ImageStates:      make(map[string]*ImageStateSummary),
-		PVCRefCounts:     make(map[string]int),
+func NewNodeInfo(pods ...*v1.Pod) NodeInfo {
+	ni := &nodeInfo{
+		requested:        &Resource{},
+		nonZeroRequested: &Resource{},
+		allocatable:      &Resource{},
+		usedPorts:        make(HostPortInfo),
+		imageStates:      make(map[string]*ImageStateSummary),
+		pvcRefCounts:     make(map[string]int),
 	}
 	for _, pod := range pods {
 		ni.AddPod(pod)
@@ -538,79 +554,107 @@ func NewNodeInfo(pods ...*v1.Pod) *NodeInfo {
 }
 
 // Node returns overall information about this node.
-func (n *NodeInfo) Node() *v1.Node {
+func (n *nodeInfo) Node() *v1.Node {
 	if n == nil {
 		return nil
 	}
 	return n.node
 }
 
+func (n *nodeInfo) Pods() []*PodInfo {
+	return n.pods
+}
+
+func (n *nodeInfo) PodsWithAffinity() []*PodInfo {
+	return n.podsWithAffinity
+}
+
+func (n *nodeInfo) PodsWithRequiredAntiAffinity() []*PodInfo {
+	return n.podsWithRequiredAntiAffinity
+}
+
+func (n *nodeInfo) UsedPorts() HostPortInfo {
+	return n.usedPorts
+}
+
+func (n *nodeInfo) ImageStates() map[string]*ImageStateSummary {
+	return n.imageStates
+}
+
 // Clone returns a copy of this node.
-func (n *NodeInfo) Clone() *NodeInfo {
-	clone := &NodeInfo{
+func (n *nodeInfo) Clone() NodeInfo {
+	clone := &nodeInfo{
 		node:             n.node,
-		Requested:        n.Requested.Clone(),
-		NonZeroRequested: n.NonZeroRequested.Clone(),
-		Allocatable:      n.Allocatable.Clone(),
-		UsedPorts:        make(HostPortInfo),
-		ImageStates:      n.ImageStates,
-		PVCRefCounts:     make(map[string]int),
-		Generation:       n.Generation,
+		requested:        n.requested.Clone(),
+		nonZeroRequested: n.nonZeroRequested.Clone(),
+		allocatable:      n.allocatable.Clone(),
+		usedPorts:        make(HostPortInfo),
+		imageStates:      n.imageStates,
+		pvcRefCounts:     make(map[string]int),
+		generation:       n.generation,
 	}
-	if len(n.Pods) > 0 {
-		clone.Pods = append([]*PodInfo(nil), n.Pods...)
+	if len(n.pods) > 0 {
+		clone.pods = append([]*PodInfo(nil), n.pods...)
 	}
-	if len(n.UsedPorts) > 0 {
+	if len(n.usedPorts) > 0 {
 		// HostPortInfo is a map-in-map struct
 		// make sure it's deep copied
-		for ip, portMap := range n.UsedPorts {
-			clone.UsedPorts[ip] = make(map[ProtocolPort]struct{})
+		for ip, portMap := range n.usedPorts {
+			clone.usedPorts[ip] = make(map[ProtocolPort]struct{})
 			for protocolPort, v := range portMap {
-				clone.UsedPorts[ip][protocolPort] = v
+				clone.usedPorts[ip][protocolPort] = v
 			}
 		}
 	}
-	if len(n.PodsWithAffinity) > 0 {
-		clone.PodsWithAffinity = append([]*PodInfo(nil), n.PodsWithAffinity...)
+	if len(n.podsWithAffinity) > 0 {
+		clone.podsWithAffinity = append([]*PodInfo(nil), n.podsWithAffinity...)
 	}
-	if len(n.PodsWithRequiredAntiAffinity) > 0 {
-		clone.PodsWithRequiredAntiAffinity = append([]*PodInfo(nil), n.PodsWithRequiredAntiAffinity...)
+	if len(n.podsWithRequiredAntiAffinity) > 0 {
+		clone.podsWithRequiredAntiAffinity = append([]*PodInfo(nil), n.podsWithRequiredAntiAffinity...)
 	}
-	for key, value := range n.PVCRefCounts {
-		clone.PVCRefCounts[key] = value
+	for key, value := range n.pvcRefCounts {
+		clone.pvcRefCounts[key] = value
 	}
 	return clone
 }
 
 // String returns representation of human readable format of this NodeInfo.
-func (n *NodeInfo) String() string {
-	podKeys := make([]string, len(n.Pods))
-	for i, p := range n.Pods {
+func (n *nodeInfo) String() string {
+	podKeys := make([]string, len(n.pods))
+	for i, p := range n.pods {
 		podKeys[i] = p.Pod.Name
 	}
 	return fmt.Sprintf("&NodeInfo{Pods:%v, RequestedResource:%#v, NonZeroRequest: %#v, UsedPort: %#v, AllocatableResource:%#v}",
-		podKeys, n.Requested, n.NonZeroRequested, n.UsedPorts, n.Allocatable)
+		podKeys, n.requested, n.nonZeroRequested, n.usedPorts, n.allocatable)
 }
 
 // AddPodInfo adds pod information to this NodeInfo.
 // Consider using this instead of AddPod if a PodInfo is already computed.
-func (n *NodeInfo) AddPodInfo(podInfo *PodInfo) {
-	n.Pods = append(n.Pods, podInfo)
+func (n *nodeInfo) AddPodInfo(podInfo *PodInfo) {
+	n.pods = append(n.pods, podInfo)
 	if podWithAffinity(podInfo.Pod) {
-		n.PodsWithAffinity = append(n.PodsWithAffinity, podInfo)
+		n.podsWithAffinity = append(n.podsWithAffinity, podInfo)
 	}
 	if podWithRequiredAntiAffinity(podInfo.Pod) {
-		n.PodsWithRequiredAntiAffinity = append(n.PodsWithRequiredAntiAffinity, podInfo)
+		n.podsWithRequiredAntiAffinity = append(n.podsWithRequiredAntiAffinity, podInfo)
 	}
 	n.update(podInfo.Pod, 1)
 }
 
 // AddPod is a wrapper around AddPodInfo.
-func (n *NodeInfo) AddPod(pod *v1.Pod) {
+func (n *nodeInfo) AddPod(pod *v1.Pod) {
 	// ignore this err since apiserver doesn't properly validate affinity terms
 	// and we can't fix the validation for backwards compatibility.
 	podInfo, _ := NewPodInfo(pod)
 	n.AddPodInfo(podInfo)
+}
+
+func (n *nodeInfo) GetGeneration() uint64 {
+	return n.generation
+}
+
+func (n *nodeInfo) SetGeneration(generation uint64) {
+	n.generation = generation
 }
 
 func podWithAffinity(p *v1.Pod) bool {
@@ -642,28 +686,28 @@ func removeFromSlice(s []*PodInfo, k string) []*PodInfo {
 }
 
 // RemovePod subtracts pod information from this NodeInfo.
-func (n *NodeInfo) RemovePod(pod *v1.Pod) error {
+func (n *nodeInfo) RemovePod(pod *v1.Pod) error {
 	k, err := GetPodKey(pod)
 	if err != nil {
 		return err
 	}
 	if podWithAffinity(pod) {
-		n.PodsWithAffinity = removeFromSlice(n.PodsWithAffinity, k)
+		n.podsWithAffinity = removeFromSlice(n.podsWithAffinity, k)
 	}
 	if podWithRequiredAntiAffinity(pod) {
-		n.PodsWithRequiredAntiAffinity = removeFromSlice(n.PodsWithRequiredAntiAffinity, k)
+		n.podsWithRequiredAntiAffinity = removeFromSlice(n.podsWithRequiredAntiAffinity, k)
 	}
 
-	for i := range n.Pods {
-		k2, err := GetPodKey(n.Pods[i].Pod)
+	for i := range n.pods {
+		k2, err := GetPodKey(n.pods[i].Pod)
 		if err != nil {
-			klog.ErrorS(err, "Cannot get pod key", "pod", klog.KObj(n.Pods[i].Pod))
+			klog.ErrorS(err, "Cannot get pod key", "pod", klog.KObj(n.pods[i].Pod))
 			continue
 		}
 		if k == k2 {
 			// delete the element
-			n.Pods[i] = n.Pods[len(n.Pods)-1]
-			n.Pods = n.Pods[:len(n.Pods)-1]
+			n.pods[i] = n.pods[len(n.pods)-1]
+			n.pods = n.pods[:len(n.pods)-1]
 
 			n.update(pod, -1)
 			n.resetSlicesIfEmpty()
@@ -675,37 +719,35 @@ func (n *NodeInfo) RemovePod(pod *v1.Pod) error {
 
 // update node info based on the pod and sign.
 // The sign will be set to `+1` when AddPod and to `-1` when RemovePod.
-func (n *NodeInfo) update(pod *v1.Pod, sign int64) {
+func (n *nodeInfo) update(pod *v1.Pod, sign int64) {
 	res, non0CPU, non0Mem := calculateResource(pod)
-	n.Requested.MilliCPU += sign * res.MilliCPU
-	n.Requested.Memory += sign * res.Memory
-	n.Requested.EphemeralStorage += sign * res.EphemeralStorage
-	if n.Requested.ScalarResources == nil && len(res.ScalarResources) > 0 {
-		n.Requested.ScalarResources = map[v1.ResourceName]int64{}
+	n.requested.MilliCPU += sign * res.MilliCPU
+	n.requested.Memory += sign * res.Memory
+	n.requested.EphemeralStorage += sign * res.EphemeralStorage
+	if n.requested.ScalarResources == nil && len(res.ScalarResources) > 0 {
+		n.requested.ScalarResources = map[v1.ResourceName]int64{}
 	}
 	for rName, rQuant := range res.ScalarResources {
-		n.Requested.ScalarResources[rName] += sign * rQuant
+		n.requested.ScalarResources[rName] += sign * rQuant
 	}
-	n.NonZeroRequested.MilliCPU += sign * non0CPU
-	n.NonZeroRequested.Memory += sign * non0Mem
+	n.nonZeroRequested.MilliCPU += sign * non0CPU
+	n.nonZeroRequested.Memory += sign * non0Mem
 
 	// Consume ports when pod added or release ports when pod removed.
 	n.updateUsedPorts(pod, sign > 0)
 	n.updatePVCRefCounts(pod, sign > 0)
-
-	n.Generation = nextGeneration()
 }
 
 // resets the slices to nil so that we can do DeepEqual in unit tests.
-func (n *NodeInfo) resetSlicesIfEmpty() {
-	if len(n.PodsWithAffinity) == 0 {
-		n.PodsWithAffinity = nil
+func (n *nodeInfo) resetSlicesIfEmpty() {
+	if len(n.podsWithAffinity) == 0 {
+		n.podsWithAffinity = nil
 	}
-	if len(n.PodsWithRequiredAntiAffinity) == 0 {
-		n.PodsWithRequiredAntiAffinity = nil
+	if len(n.podsWithRequiredAntiAffinity) == 0 {
+		n.podsWithRequiredAntiAffinity = nil
 	}
-	if len(n.Pods) == 0 {
-		n.Pods = nil
+	if len(n.pods) == 0 {
+		n.pods = nil
 	}
 }
 
@@ -750,20 +792,20 @@ func calculateResource(pod *v1.Pod) (res Resource, non0CPU int64, non0Mem int64)
 }
 
 // updateUsedPorts updates the UsedPorts of NodeInfo.
-func (n *NodeInfo) updateUsedPorts(pod *v1.Pod, add bool) {
+func (n *nodeInfo) updateUsedPorts(pod *v1.Pod, add bool) {
 	for _, container := range pod.Spec.Containers {
 		for _, podPort := range container.Ports {
 			if add {
-				n.UsedPorts.Add(podPort.HostIP, string(podPort.Protocol), podPort.HostPort)
+				n.usedPorts.Add(podPort.HostIP, string(podPort.Protocol), podPort.HostPort)
 			} else {
-				n.UsedPorts.Remove(podPort.HostIP, string(podPort.Protocol), podPort.HostPort)
+				n.usedPorts.Remove(podPort.HostIP, string(podPort.Protocol), podPort.HostPort)
 			}
 		}
 	}
 }
 
 // updatePVCRefCounts updates the PVCRefCounts of NodeInfo.
-func (n *NodeInfo) updatePVCRefCounts(pod *v1.Pod, add bool) {
+func (n *nodeInfo) updatePVCRefCounts(pod *v1.Pod, add bool) {
 	for _, v := range pod.Spec.Volumes {
 		if v.PersistentVolumeClaim == nil {
 			continue
@@ -771,27 +813,25 @@ func (n *NodeInfo) updatePVCRefCounts(pod *v1.Pod, add bool) {
 
 		key := GetNamespacedName(pod.Namespace, v.PersistentVolumeClaim.ClaimName)
 		if add {
-			n.PVCRefCounts[key] += 1
+			n.pvcRefCounts[key] += 1
 		} else {
-			n.PVCRefCounts[key] -= 1
-			if n.PVCRefCounts[key] <= 0 {
-				delete(n.PVCRefCounts, key)
+			n.pvcRefCounts[key] -= 1
+			if n.pvcRefCounts[key] <= 0 {
+				delete(n.pvcRefCounts, key)
 			}
 		}
 	}
 }
 
 // SetNode sets the overall node information.
-func (n *NodeInfo) SetNode(node *v1.Node) {
+func (n *nodeInfo) SetNode(node *v1.Node) {
 	n.node = node
-	n.Allocatable = NewResource(node.Status.Allocatable)
-	n.Generation = nextGeneration()
+	n.allocatable = NewResource(node.Status.Allocatable)
 }
 
 // RemoveNode removes the node object, leaving all other tracking information.
-func (n *NodeInfo) RemoveNode() {
+func (n *nodeInfo) RemoveNode() {
 	n.node = nil
-	n.Generation = nextGeneration()
 }
 
 // GetPodKey returns the string key of a pod.

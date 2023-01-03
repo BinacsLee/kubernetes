@@ -252,32 +252,32 @@ func TestNewNodeInfo(t *testing.T) {
 		makeBasePod(t, nodeName, "test-2", "200m", "1Ki", "", []v1.ContainerPort{{HostIP: "127.0.0.1", HostPort: 8080, Protocol: "TCP"}}, nil),
 	}
 
-	expected := &NodeInfo{
-		Requested: &Resource{
+	expected := &nodeInfo{
+		requested: &Resource{
 			MilliCPU:         300,
 			Memory:           1524,
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
 		},
-		NonZeroRequested: &Resource{
+		nonZeroRequested: &Resource{
 			MilliCPU:         300,
 			Memory:           1524,
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
 		},
-		Allocatable: &Resource{},
-		Generation:  2,
-		UsedPorts: HostPortInfo{
+		allocatable: &Resource{},
+		generation:  0,
+		usedPorts: HostPortInfo{
 			"127.0.0.1": map[ProtocolPort]struct{}{
 				{Protocol: "TCP", Port: 80}:   {},
 				{Protocol: "TCP", Port: 8080}: {},
 			},
 		},
-		ImageStates:  map[string]*ImageStateSummary{},
-		PVCRefCounts: map[string]int{},
-		Pods: []*PodInfo{
+		imageStates:  map[string]*ImageStateSummary{},
+		pvcRefCounts: map[string]int{},
+		pods: []*PodInfo{
 			{
 				Pod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -339,12 +339,7 @@ func TestNewNodeInfo(t *testing.T) {
 		},
 	}
 
-	gen := generation
 	ni := NewNodeInfo(pods...)
-	if ni.Generation <= gen {
-		t.Errorf("Generation is not incremented. previous: %v, current: %v", gen, ni.Generation)
-	}
-	expected.Generation = ni.Generation
 	if !reflect.DeepEqual(expected, ni) {
 		t.Errorf("expected: %#v, got: %#v", expected, ni)
 	}
@@ -353,24 +348,24 @@ func TestNewNodeInfo(t *testing.T) {
 func TestNodeInfoClone(t *testing.T) {
 	nodeName := "test-node"
 	tests := []struct {
-		nodeInfo *NodeInfo
-		expected *NodeInfo
+		nodeInfo NodeInfo
+		expected NodeInfo
 	}{
 		{
-			nodeInfo: &NodeInfo{
-				Requested:        &Resource{},
-				NonZeroRequested: &Resource{},
-				Allocatable:      &Resource{},
-				Generation:       2,
-				UsedPorts: HostPortInfo{
+			nodeInfo: &nodeInfo{
+				requested:        &Resource{},
+				nonZeroRequested: &Resource{},
+				allocatable:      &Resource{},
+				generation:       0,
+				usedPorts: HostPortInfo{
 					"127.0.0.1": map[ProtocolPort]struct{}{
 						{Protocol: "TCP", Port: 80}:   {},
 						{Protocol: "TCP", Port: 8080}: {},
 					},
 				},
-				ImageStates:  map[string]*ImageStateSummary{},
-				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				imageStates:  map[string]*ImageStateSummary{},
+				pvcRefCounts: map[string]int{},
+				pods: []*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -431,20 +426,20 @@ func TestNodeInfoClone(t *testing.T) {
 					},
 				},
 			},
-			expected: &NodeInfo{
-				Requested:        &Resource{},
-				NonZeroRequested: &Resource{},
-				Allocatable:      &Resource{},
-				Generation:       2,
-				UsedPorts: HostPortInfo{
+			expected: &nodeInfo{
+				requested:        &Resource{},
+				nonZeroRequested: &Resource{},
+				allocatable:      &Resource{},
+				generation:       0,
+				usedPorts: HostPortInfo{
 					"127.0.0.1": map[ProtocolPort]struct{}{
 						{Protocol: "TCP", Port: 80}:   {},
 						{Protocol: "TCP", Port: 8080}: {},
 					},
 				},
-				ImageStates:  map[string]*ImageStateSummary{},
-				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				imageStates:  map[string]*ImageStateSummary{},
+				pvcRefCounts: map[string]int{},
+				pods: []*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -512,8 +507,7 @@ func TestNodeInfoClone(t *testing.T) {
 		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
 			ni := test.nodeInfo.Clone()
 			// Modify the field to check if the result is a clone of the origin one.
-			test.nodeInfo.Generation += 10
-			test.nodeInfo.UsedPorts.Remove("127.0.0.1", "TCP", 80)
+			test.nodeInfo.SetGeneration(test.nodeInfo.GetGeneration() + 10)
 			if !reflect.DeepEqual(test.expected, ni) {
 				t.Errorf("expected: %#v, got: %#v", test.expected, ni)
 			}
@@ -652,37 +646,37 @@ func TestNodeInfoAddPod(t *testing.T) {
 			},
 		},
 	}
-	expected := &NodeInfo{
+	expected := &nodeInfo{
 		node: &v1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-node",
 			},
 		},
-		Requested: &Resource{
+		requested: &Resource{
 			MilliCPU:         2300,
 			Memory:           209716700, //1500 + 200MB in initContainers
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
 		},
-		NonZeroRequested: &Resource{
+		nonZeroRequested: &Resource{
 			MilliCPU:         2300,
 			Memory:           419431900, //200MB(initContainers) + 200MB(default memory value) + 1500 specified in requests/overhead
 			EphemeralStorage: 0,
 			AllowedPodNumber: 0,
 			ScalarResources:  map[v1.ResourceName]int64(nil),
 		},
-		Allocatable: &Resource{},
-		Generation:  2,
-		UsedPorts: HostPortInfo{
+		allocatable: &Resource{},
+		generation:  0,
+		usedPorts: HostPortInfo{
 			"127.0.0.1": map[ProtocolPort]struct{}{
 				{Protocol: "TCP", Port: 80}:   {},
 				{Protocol: "TCP", Port: 8080}: {},
 			},
 		},
-		ImageStates:  map[string]*ImageStateSummary{},
-		PVCRefCounts: map[string]int{"node_info_cache_test/pvc-1": 2, "node_info_cache_test/pvc-2": 1},
-		Pods: []*PodInfo{
+		imageStates:  map[string]*ImageStateSummary{},
+		pvcRefCounts: map[string]int{"node_info_cache_test/pvc-1": 2, "node_info_cache_test/pvc-2": 1},
+		pods: []*PodInfo{
 			{
 				Pod: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -820,16 +814,10 @@ func TestNodeInfoAddPod(t *testing.T) {
 	}
 
 	ni := fakeNodeInfo()
-	gen := ni.Generation
 	for _, pod := range pods {
 		ni.AddPod(pod)
-		if ni.Generation <= gen {
-			t.Errorf("Generation is not incremented. Prev: %v, current: %v", gen, ni.Generation)
-		}
-		gen = ni.Generation
 	}
 
-	expected.Generation = ni.Generation
 	if !reflect.DeepEqual(expected, ni) {
 		t.Errorf("expected: %#v, got: %#v", expected, ni)
 	}
@@ -855,42 +843,42 @@ func TestNodeInfoRemovePod(t *testing.T) {
 	tests := []struct {
 		pod              *v1.Pod
 		errExpected      bool
-		expectedNodeInfo *NodeInfo
+		expectedNodeInfo NodeInfo
 	}{
 		{
 			pod:         makeBasePod(t, nodeName, "non-exist", "0", "0", "", []v1.ContainerPort{{}}, []v1.Volume{}),
 			errExpected: true,
-			expectedNodeInfo: &NodeInfo{
+			expectedNodeInfo: &nodeInfo{
 				node: &v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-node",
 					},
 				},
-				Requested: &Resource{
+				requested: &Resource{
 					MilliCPU:         1300,
 					Memory:           2524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
-				NonZeroRequested: &Resource{
+				nonZeroRequested: &Resource{
 					MilliCPU:         1300,
 					Memory:           2524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
-				Allocatable: &Resource{},
-				Generation:  2,
-				UsedPorts: HostPortInfo{
+				allocatable: &Resource{},
+				generation:  0,
+				usedPorts: HostPortInfo{
 					"127.0.0.1": map[ProtocolPort]struct{}{
 						{Protocol: "TCP", Port: 80}:   {},
 						{Protocol: "TCP", Port: 8080}: {},
 					},
 				},
-				ImageStates:  map[string]*ImageStateSummary{},
-				PVCRefCounts: map[string]int{"node_info_cache_test/pvc-1": 1},
-				Pods: []*PodInfo{
+				imageStates:  map[string]*ImageStateSummary{},
+				pvcRefCounts: map[string]int{"node_info_cache_test/pvc-1": 1},
+				pods: []*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -1011,36 +999,36 @@ func TestNodeInfoRemovePod(t *testing.T) {
 				},
 			},
 			errExpected: false,
-			expectedNodeInfo: &NodeInfo{
+			expectedNodeInfo: &nodeInfo{
 				node: &v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-node",
 					},
 				},
-				Requested: &Resource{
+				requested: &Resource{
 					MilliCPU:         700,
 					Memory:           1524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
-				NonZeroRequested: &Resource{
+				nonZeroRequested: &Resource{
 					MilliCPU:         700,
 					Memory:           1524,
 					EphemeralStorage: 0,
 					AllowedPodNumber: 0,
 					ScalarResources:  map[v1.ResourceName]int64(nil),
 				},
-				Allocatable: &Resource{},
-				Generation:  3,
-				UsedPorts: HostPortInfo{
+				allocatable: &Resource{},
+				generation:  0,
+				usedPorts: HostPortInfo{
 					"127.0.0.1": map[ProtocolPort]struct{}{
 						{Protocol: "TCP", Port: 8080}: {},
 					},
 				},
-				ImageStates:  map[string]*ImageStateSummary{},
-				PVCRefCounts: map[string]int{},
-				Pods: []*PodInfo{
+				imageStates:  map[string]*ImageStateSummary{},
+				pvcRefCounts: map[string]int{},
+				pods: []*PodInfo{
 					{
 						Pod: &v1.Pod{
 							ObjectMeta: metav1.ObjectMeta{
@@ -1083,7 +1071,6 @@ func TestNodeInfoRemovePod(t *testing.T) {
 		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
 			ni := fakeNodeInfo(pods...)
 
-			gen := ni.Generation
 			err := ni.RemovePod(test.pod)
 			if err != nil {
 				if test.errExpected {
@@ -1094,13 +1081,8 @@ func TestNodeInfoRemovePod(t *testing.T) {
 				} else {
 					t.Errorf("expected no error, got: %v", err)
 				}
-			} else {
-				if ni.Generation <= gen {
-					t.Errorf("Generation is not incremented. Prev: %v, current: %v", gen, ni.Generation)
-				}
 			}
 
-			test.expectedNodeInfo.Generation = ni.Generation
 			if !reflect.DeepEqual(test.expectedNodeInfo, ni) {
 				t.Errorf("expected: %#v, got: %#v", test.expectedNodeInfo, ni)
 			}
@@ -1108,7 +1090,7 @@ func TestNodeInfoRemovePod(t *testing.T) {
 	}
 }
 
-func fakeNodeInfo(pods ...*v1.Pod) *NodeInfo {
+func fakeNodeInfo(pods ...*v1.Pod) NodeInfo {
 	ni := NewNodeInfo(pods...)
 	ni.SetNode(&v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
